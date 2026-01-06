@@ -1,36 +1,22 @@
-use gpui::*;
-use gpui_component::*;
-use gpui_component_assets::Assets;
-
-use crate::ui::ClickUI;
-
+mod cli;
 mod ui;
+mod ui_main;
+use clap::Parser;
+
+use crate::{
+    cli::{Cli, daemon_start, daemon_stop},
+    ui_main::ui_main,
+};
 
 fn main() {
-    let app = Application::new().with_assets(Assets);
+    let cli = Cli::parse();
 
-    app.run(move |cx| {
-        // This must be called before using any GPUI Component features.
-        gpui_component::init(cx);
-
-        cx.spawn(async move |cx| {
-            let options = WindowOptions {
-                titlebar: Some(TitlebarOptions {
-                    title: Some("WayClicker".into()),
-                    ..Default::default()
-                }),
-                app_id: Some("wayclicker".into()),
-                ..Default::default()
-            };
-
-            cx.open_window(options, |window, cx| {
-                let view = ClickUI::view(window, cx);
-                // This first level on the window, should be a Root.
-                cx.new(|cx| Root::new(view, window, cx))
-            })?;
-
-            Ok::<_, anyhow::Error>(())
-        })
-        .detach();
-    });
+    match cli.commands {
+        Some(sub_commands) => match sub_commands {
+            cli::Subcommands::Start => daemon_start(),
+            cli::Subcommands::Stop => daemon_stop(),
+            cli::Subcommands::Ui => ui_main(),
+        },
+        None => ui_main(),
+    }
 }

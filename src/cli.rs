@@ -1,0 +1,108 @@
+use clap::{Parser, Subcommand, builder::ArgPredicate};
+use nix::{
+    sys::signal::{Signal, kill},
+    unistd::Pid,
+};
+use std::{
+    fs::{File, OpenOptions},
+    io::{Read, Write},
+    os::fd::AsRawFd,
+    os::unix::fs::OpenOptionsExt,
+    path::PathBuf,
+    process,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    thread,
+};
+
+#[derive(Parser, Debug)]
+#[command(
+    version,
+    about = "An autoclicker designed for use with wayland systems."
+)]
+pub struct Cli {
+    #[command(subcommand)]
+    pub commands: Option<Subcommands>,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum Subcommands {
+    Start,
+    Stop,
+    Ui,
+}
+
+fn pid_file_path() -> PathBuf {
+    dirs::runtime_dir()
+        .or_else(|| dirs::cache_dir().or_else(|| dirs::home_dir().map(|d| d.join(".cache"))))
+        .unwrap()
+        .join("wayclick.pid")
+}
+
+fn obtain_lock() -> File {
+    let path = pid_file_path();
+    let file = OpenOptions::new()
+        .create(true)
+        .read(true)
+        .write(true)
+        .mode(0o600)
+        .open(&path)
+        .expect("Cannot open pid-file");
+    // exclusive, non-blocking lock
+    if nix::fcntl::flock(
+        file.as_raw_fd(),
+        nix::fcntl::FlockArg::LockExclusiveNonblock,
+    )
+    .is_err()
+    {
+        eprintln!("Another instance is already running.");
+        process::exit(1);
+    }
+    file
+}
+
+fn write_pid(mut file: &File) {
+    let pid = process::id().to_string();
+    file.set_len(0).unwrap();
+    file.write_all(pid.as_bytes()).unwrap();
+    file.sync_all().unwrap();
+}
+
+fn read_pid() -> Option<Pid> {
+    let mut buf = String::new();
+    File::open(pid_file_path())
+        .ok()
+        .and_then(|mut f| f.read_to_string(&mut buf).ok())
+        .and_then(|_| buf.trim().parse::<i32>().ok())
+        .map(Pid::from_raw)
+}
+
+pub fn daemon_start() {
+    let file = obtain_lock();
+    write_pid(&file);
+
+    // graceful shutdown on SIGTERM
+    let running = Arc::new(AtomicBool::new(true));
+    let r = running.clone();
+
+    println!("Daemon running… press Ctrl-C or send SIGTERM to stop.");
+    while running.load(Ordering::SeqCst) {
+        thread::sleep(std::time::Duration::from_secs(1));
+    }
+    println!("Daemon stopping…");
+}
+
+pub fn daemon_stop() {
+    match read_pid() {
+        Some(pid) => {
+            kill(pid, Signal::SIGTERM).expect("Failed to send SIGTERM");
+            std::fs::remove_file(pid_file_path()).ok();
+            println!("Sent SIGTERM to {pid}");
+        }
+        None => {
+            eprintln!("No pid-file found; nothing to stop.");
+        }
+    }
+}
