@@ -208,7 +208,7 @@ impl Render for NumberInputStory {
             .child(
                 div()
                     .max_w(px(200.))
-                    .child(NumberInput::new(&self.number_input1)),
+                    .child(NumberInput::new(&self.number_input1).prefix("e")),
             )
             .child(
                 div()
