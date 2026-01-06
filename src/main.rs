@@ -1,5 +1,11 @@
 use gpui::*;
 use gpui_component::{button::*, *};
+use gpui_component_assets::Assets;
+
+use crate::ui::ClickUI;
+
+mod counter;
+mod ui;
 
 pub struct HelloWorld;
 impl Render for HelloWorld {
@@ -21,15 +27,24 @@ impl Render for HelloWorld {
 }
 
 fn main() {
-    let app = Application::new();
+    let app = Application::new().with_assets(Assets);
 
     app.run(move |cx| {
         // This must be called before using any GPUI Component features.
         gpui_component::init(cx);
 
         cx.spawn(async move |cx| {
-            cx.open_window(WindowOptions::default(), |window, cx| {
-                let view = cx.new(|_| HelloWorld);
+            let options = WindowOptions {
+                titlebar: Some(TitlebarOptions {
+                    title: Some("WayClicker".into()),
+                    ..Default::default()
+                }),
+                app_id: Some("wayclicker".into()),
+                ..Default::default()
+            };
+
+            cx.open_window(options, |window, cx| {
+                let view = ClickUI::view(window, cx);
                 // This first level on the window, should be a Root.
                 cx.new(|cx| Root::new(view, window, cx))
             })?;
