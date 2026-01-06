@@ -4,7 +4,6 @@ use gpui_component_assets::Assets;
 
 use crate::ui::ClickUI;
 
-mod counter;
 mod ui;
 
 fn main() {

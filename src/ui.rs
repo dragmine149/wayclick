@@ -1,17 +1,15 @@
 use gpui::{
-    App, AppContext, Context, Entity, Hsla, IntoElement, KeyEvent, ParentElement, Render, Rgba,
-    Styled, Subscription, Window, div, px,
+    App, AppContext, Context, Entity, Hsla, IntoElement, ParentElement, Render, Styled,
+    Subscription, Window, div,
 };
 use gpui_component::{
-    DivInspector, Sizable, StyledExt,
+    DivInspector, StyledExt,
     button::Button,
     group_box::GroupBox,
     input::{InputEvent, InputState, NumberInput, NumberInputEvent, StepAction},
     label::Label,
 };
 use regex::Regex;
-
-use crate::counter::NumberInputStory;
 
 pub struct IntervalInput {
     hour_input: Entity<InputState>,
@@ -188,7 +186,6 @@ impl Render for IntervalInput {
 
 pub struct ClickUI {
     interval: Entity<IntervalInput>,
-    counter_input: Entity<NumberInputStory>,
     inspector: Entity<DivInspector>,
 }
 
@@ -199,13 +196,10 @@ impl ClickUI {
 
     fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
         let interval = IntervalInput::view(window, cx);
-        let counter_input = NumberInputStory::view(window, cx);
-
         let inspector = cx.new(|cx| DivInspector::new(window, cx));
 
         Self {
             interval,
-            counter_input,
             inspector,
         }
     }
@@ -220,13 +214,5 @@ impl Render for ClickUI {
             .child(self.inspector.clone())
             .child(Label::new("WayClicker").text_3xl().font_bold())
             .child(self.interval.clone())
-            .child(self.counter_input.clone())
-            .child(
-                Button::new("Test btn")
-                    .on_click(|_, _, _| {
-                        println!("Button clicked!");
-                    })
-                    .label("click me"),
-            )
     }
 }
