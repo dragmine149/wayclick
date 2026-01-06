@@ -29,8 +29,13 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug)]
 pub enum Subcommands {
+    /// Starts the autoclicker / macro, defaults to your last saved settings.
+    ///
+    /// Note: Only one instance can be running at a time.
     Start,
+    /// Stops the autoclicker.
     Stop,
+    /// Opens up the UI for configuring the autoclicker.
     Ui,
 }
 
