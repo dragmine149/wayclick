@@ -22,6 +22,7 @@ pub fn ui_main() {
 
             cx.open_window(options, |window, cx| {
                 let view = ClickUI::view(window, cx);
+
                 // This first level on the window, should be a Root.
                 cx.new(|cx| Root::new(view, window, cx))
             })?;

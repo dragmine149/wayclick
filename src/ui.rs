@@ -1,6 +1,8 @@
+use std::ops::Sub;
+
 use gpui::{
-    App, AppContext, Context, Entity, Hsla, IntoElement, ParentElement, Render, Styled,
-    Subscription, Window, div,
+    App, AppContext, Context, Entity, FocusHandle, Hsla, IntoElement, ParentElement, Render,
+    Styled, Subscription, Window, div,
 };
 use gpui_component::{
     DivInspector, StyledExt,
@@ -51,6 +53,7 @@ impl IntervalInput {
             cx.subscribe_in(&second_input, window, Self::on_number_input_event),
             cx.subscribe_in(&millisecond_input, window, Self::on_input_event),
             cx.subscribe_in(&millisecond_input, window, Self::on_number_input_event),
+            cx.observe_window_activation(window, Self::on_focus),
         ];
 
         Self {
@@ -65,7 +68,12 @@ impl IntervalInput {
     }
 
     fn on_focus(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if !window.is_window_active() {
+            return;
+        }
+
         let data = Settings::load_data();
+
         self.millisecond_value = data.milliseconds.unwrap();
         self.millisecond_input.update(cx, |input, cx| {
             input.set_value(self.millisecond_value.to_string(), window, cx)
@@ -104,8 +112,8 @@ impl IntervalInput {
                     println!("Change: {}", text);
                 }
             }
+            InputEvent::Focus => println!("Focused... {:?}", state),
             _ => {} // InputEvent::PressEnter { secondary } => todo!(),
-                    // InputEvent::Focus => todo!(),
                     // InputEvent::Blur => todo!(),
         }
     }
@@ -184,6 +192,7 @@ impl Render for IntervalInput {
 pub struct ClickUI {
     interval: Entity<IntervalInput>,
     inspector: Entity<DivInspector>,
+    _subscriptions: Vec<Subscription>,
 }
 
 impl ClickUI {
@@ -195,9 +204,14 @@ impl ClickUI {
         let interval = IntervalInput::view(window, cx);
         let inspector = cx.new(|cx| DivInspector::new(window, cx));
 
+        let _subscriptions = vec![cx.observe_window_activation(window, |this, window, cx| {
+            println!("window activation: {}", window.is_window_active())
+        })];
+
         Self {
             interval,
             inspector,
+            _subscriptions,
         }
     }
 }
