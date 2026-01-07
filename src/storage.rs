@@ -3,22 +3,21 @@ use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf};
 
 #[derive(Debug, Serialize, Deserialize, Builder)]
-#[builder(setter(into))]
+#[builder(setter(into, strip_option), default)]
+#[serde(default)]
 pub struct Data {
-    #[serde(default)]
     pub minutes: Option<u64>,
-    #[serde(default)]
     pub seconds: Option<u64>,
-    #[serde(default)]
     pub milliseconds: Option<u64>,
+    pub theme: Option<String>,
 }
-
 impl Default for Data {
     fn default() -> Self {
         Self {
             minutes: Some(0),
             seconds: Some(0),
             milliseconds: Some(100),
+            theme: Some("Catppuccin Mocha".into()),
         }
     }
 }
@@ -38,6 +37,7 @@ impl Merge for Data {
             milliseconds: self.milliseconds.or(other.milliseconds),
             seconds: self.seconds.or(other.seconds),
             minutes: self.minutes.or(other.minutes),
+            theme: self.theme.clone().or(other.theme),
         }
     }
 }
@@ -60,14 +60,23 @@ impl Sharable for Data {
     }
 }
 
-fn save_dir() -> PathBuf {
-    dirs::config_dir().unwrap().join("wayclick.json")
+fn config_dir() -> PathBuf {
+    dirs::config_dir().unwrap().join("wayclick")
+}
+pub fn save_path() -> PathBuf {
+    config_dir().join("settings.json")
+}
+pub fn theme_dir() -> PathBuf {
+    config_dir().join("themes")
+}
+pub fn zed_theme_dir() -> PathBuf {
+    dirs::config_dir().unwrap().join("zed/themes")
 }
 
 pub struct Settings;
 impl Settings {
     pub fn load_data() -> Data {
-        let path = save_dir();
+        let path = save_path();
         match fs::read_to_string(&path) {
             Ok(contents) => serde_json::from_str::<Data>(&contents).unwrap_or_default(),
             Err(_) => Data::default(),
@@ -75,7 +84,7 @@ impl Settings {
     }
 
     pub fn save_data(data: Data) {
-        let path = save_dir();
+        let path = save_path();
 
         // Load previously stored data to fill in any missing fields
         let stored = Settings::load_data();

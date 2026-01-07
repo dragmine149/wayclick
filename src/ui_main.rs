@@ -1,4 +1,7 @@
-use crate::ui::ClickUI;
+use crate::{
+    storage::{Settings, theme_dir},
+    ui::ClickUI,
+};
 use gpui::*;
 use gpui_component::*;
 use gpui_component_assets::Assets;
@@ -9,6 +12,16 @@ pub fn ui_main() {
     app.run(move |cx| {
         // This must be called before using any GPUI Component features.
         gpui_component::init(cx);
+
+        let theme_name = SharedString::from(Settings::load_data().theme.unwrap_or_default());
+        if let Err(err) = ThemeRegistry::watch_dir(theme_dir(), cx, move |cx| {
+            if let Some(theme) = ThemeRegistry::global(cx).themes().get(&theme_name).cloned() {
+                Theme::global_mut(cx).apply_config(&theme);
+                cx.refresh_windows();
+            }
+        }) {
+            eprintln!("Failed to watch themes directory: {}", err);
+        }
 
         cx.spawn(async move |cx| {
             let options = WindowOptions {
