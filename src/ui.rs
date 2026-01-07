@@ -5,15 +5,18 @@ use gpui::{
     Styled, Subscription, Window, div,
 };
 use gpui_component::{
-    DivInspector, StyledExt,
-    button::Button,
+    Disableable, DivInspector, Selectable, StyledExt,
+    button::{Button, ButtonGroup},
     group_box::GroupBox,
     input::{InputEvent, InputState, NumberInput, NumberInputEvent, StepAction},
     label::Label,
 };
 use regex::Regex;
 
-use crate::storage::{Data, DataBuilder, Settings};
+use crate::{
+    cli::{daemon_start, daemon_stop},
+    storage::{Data, DataBuilder, Settings},
+};
 
 pub struct IntervalInput {
     minute_input: Entity<InputState>,
@@ -198,26 +201,42 @@ impl Render for IntervalInput {
     }
 }
 
-pub struct Activate;
+pub struct Activate {
+    is_clicking: bool,
+}
 impl Activate {
     pub fn view(window: &mut Window, cx: &mut App) -> Entity<Self> {
-        cx.new(|cx| Self)
+        cx.new(|cx| Self::new(window, cx))
+    }
+    pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
+        Self { is_clicking: false }
     }
 }
 impl Render for Activate {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        div()
-            .size_full()
-            .child(
-                Button::new("activate")
-                    .label("Start Autoclicking")
-                    .on_click(|_, _, _| println!("Start clicking")),
-            )
-            .child(
-                Button::new("activate")
-                    .label("Stop Autoclicking")
-                    .on_click(|_, _, _| println!("Stop clicking")),
-            )
+        div().size_full().child(
+            ButtonGroup::new("activation-group")
+                .children(vec![
+                    Button::new("activate")
+                        .label("Start Autoclicking")
+                        .disabled(self.is_clicking),
+                    Button::new("deactivate")
+                        .label("Stop Autoclicking")
+                        .disabled(!self.is_clicking),
+                ])
+                .on_click(cx.listener(|view, clicks: &Vec<usize>, window, cx| {
+                    if clicks.contains(&0) {
+                        println!("Start clicking");
+                        view.is_clicking = true;
+                        daemon_start();
+                    }
+                    if clicks.contains(&1) {
+                        println!("Stop clicking");
+                        view.is_clicking = false;
+                        daemon_stop();
+                    }
+                })),
+        )
     }
 }
 

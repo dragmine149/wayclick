@@ -1,8 +1,10 @@
 use clap::{Parser, Subcommand, builder::ArgPredicate};
+use enigo::{Enigo, Mouse};
 use nix::{
     sys::signal::{Signal, kill},
     unistd::Pid,
 };
+use notify_rust::Notification;
 use std::{
     fs::{File, OpenOptions},
     io::{Read, Write},
@@ -27,7 +29,7 @@ pub struct Cli {
     pub commands: Option<Subcommands>,
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, Default)]
 pub enum Subcommands {
     /// Starts the autoclicker / macro, defaults to your last saved settings.
     ///
@@ -35,7 +37,10 @@ pub enum Subcommands {
     Start,
     /// Stops the autoclicker.
     Stop,
+    /// Toggles the current state of the autoclicker.
+    Toggle,
     /// Opens up the UI for configuring the autoclicker.
+    #[default]
     Ui,
 }
 
@@ -85,16 +90,29 @@ fn read_pid() -> Option<Pid> {
 }
 
 pub fn daemon_start() {
+    Notification::new()
+        .summary("Wayclick")
+        .body("Autoclicker is loading")
+        .show()
+        .unwrap();
     let file = obtain_lock();
     write_pid(&file);
 
     // graceful shutdown on SIGTERM
     let running = Arc::new(AtomicBool::new(true));
-    let r = running.clone();
-
+    let mut enigo = Enigo::new(&enigo::Settings::default()).unwrap();
     println!("Daemon running… press Ctrl-C or send SIGTERM to stop.");
+    Notification::new()
+        .summary("Wayclick")
+        .body("Autoclicker is starting")
+        .show()
+        .unwrap();
+
     while running.load(Ordering::SeqCst) {
         thread::sleep(std::time::Duration::from_secs(1));
+        enigo
+            .button(enigo::Button::Left, enigo::Direction::Click)
+            .unwrap();
     }
     println!("Daemon stopping…");
 }
@@ -102,12 +120,24 @@ pub fn daemon_start() {
 pub fn daemon_stop() {
     match read_pid() {
         Some(pid) => {
-            kill(pid, Signal::SIGTERM).expect("Failed to send SIGTERM");
+            kill(pid, Signal::SIGTERM).expect(&format!("Failed to send SIGTERM ({})", pid));
             std::fs::remove_file(pid_file_path()).ok();
             println!("Sent SIGTERM to {pid}");
         }
         None => {
             eprintln!("No pid-file found; nothing to stop.");
         }
+    }
+}
+
+pub fn toggle_daemon() {
+    Notification::new()
+        .summary("Wayclick")
+        .body("e2")
+        .show()
+        .unwrap();
+    match read_pid() {
+        Some(_) => daemon_stop(),
+        None => daemon_start(),
     }
 }
