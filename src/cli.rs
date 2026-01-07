@@ -106,7 +106,8 @@ pub fn daemon_start() {
     println!("Daemon running… press Ctrl-C or send SIGTERM to stop.");
     Notification::new()
         .summary("Wayclick")
-        .body("Autoclicker is starting")
+        .body("Autoclicking...")
+        .timeout(0)
         .show()
         .unwrap();
 
