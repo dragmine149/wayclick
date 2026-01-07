@@ -6,6 +6,7 @@ use gpui::{
 };
 use gpui_component::{
     DivInspector, StyledExt,
+    button::Button,
     group_box::GroupBox,
     input::{InputEvent, InputState, NumberInput, NumberInputEvent, StepAction},
     label::Label,
@@ -197,9 +198,33 @@ impl Render for IntervalInput {
     }
 }
 
+pub struct Activate;
+impl Activate {
+    pub fn view(window: &mut Window, cx: &mut App) -> Entity<Self> {
+        cx.new(|cx| Self)
+    }
+}
+impl Render for Activate {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .size_full()
+            .child(
+                Button::new("activate")
+                    .label("Start Autoclicking")
+                    .on_click(|_, _, _| println!("Start clicking")),
+            )
+            .child(
+                Button::new("activate")
+                    .label("Stop Autoclicking")
+                    .on_click(|_, _, _| println!("Stop clicking")),
+            )
+    }
+}
+
 pub struct ClickUI {
     interval: Entity<IntervalInput>,
     inspector: Entity<DivInspector>,
+    activate: Entity<Activate>,
     _subscriptions: Vec<Subscription>,
 }
 
@@ -211,6 +236,7 @@ impl ClickUI {
     fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
         let interval = IntervalInput::view(window, cx);
         let inspector = cx.new(|cx| DivInspector::new(window, cx));
+        let activate = Activate::view(window, cx);
 
         let _subscriptions = vec![cx.observe_window_activation(window, |this, window, cx| {
             println!("window activation: {}", window.is_window_active())
@@ -219,6 +245,7 @@ impl ClickUI {
         Self {
             interval,
             inspector,
+            activate,
             _subscriptions,
         }
     }
@@ -233,5 +260,6 @@ impl Render for ClickUI {
             .child(self.inspector.clone())
             .child(Label::new("WayClicker").text_3xl().font_bold())
             .child(self.interval.clone())
+            .child(self.activate.clone())
     }
 }
