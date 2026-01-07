@@ -41,8 +41,8 @@ pub enum Subcommands {
 
 fn pid_file_path() -> PathBuf {
     dirs::runtime_dir()
-        .or_else(|| dirs::cache_dir().or_else(|| dirs::home_dir().map(|d| d.join(".cache"))))
-        .unwrap()
+        .or_else(|| dirs::cache_dir())
+        .expect("Can't find a place to write lock file")
         .join("wayclick.pid")
 }
 

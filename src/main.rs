@@ -1,12 +1,13 @@
 mod cli;
+mod storage;
 mod ui;
 mod ui_main;
-use clap::Parser;
 
 use crate::{
     cli::{Cli, daemon_start, daemon_stop},
     ui_main::ui_main,
 };
+use clap::Parser;
 
 fn main() {
     let cli = Cli::parse();
