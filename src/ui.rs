@@ -12,7 +12,7 @@ use gpui_component::{
 };
 use regex::Regex;
 
-use crate::storage::Settings;
+use crate::storage::{Data, DataBuilder, Settings};
 
 pub struct IntervalInput {
     minute_input: Entity<InputState>,
@@ -110,6 +110,14 @@ impl IntervalInput {
                         self.millisecond_value = value;
                     }
                     println!("Change: {}", text);
+
+                    let data = DataBuilder::default()
+                        .minutes(self.minute_value)
+                        .seconds(self.second_value)
+                        .milliseconds(self.millisecond_value)
+                        .build()
+                        .unwrap();
+                    Settings::save_data(data);
                 }
             }
             InputEvent::Focus => println!("Focused... {:?}", state),

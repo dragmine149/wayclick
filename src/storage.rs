@@ -1,7 +1,9 @@
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Builder)]
+#[builder(setter(into))]
 pub struct Data {
     #[serde(default)]
     pub minutes: Option<u64>,
@@ -25,7 +27,9 @@ trait Merge {
     type Other;
     fn merge(&self, other: Self::Other) -> Self;
 }
-
+trait Sharable {
+    fn share(&self) -> String;
+}
 impl Merge for Data {
     type Other = Data;
 
@@ -35,6 +39,24 @@ impl Merge for Data {
             seconds: self.seconds.or(other.seconds),
             minutes: self.minutes.or(other.minutes),
         }
+    }
+}
+fn num_to_char(n: u8) -> Option<char> {
+    match n {
+        0..=9 => Some((b'0' + n) as char),
+        10..=35 => Some((b'A' + (n - 10)) as char),
+        36..=59 => Some((b'a' + (n - 36)) as char),
+        _ => None,
+    }
+}
+impl Sharable for Data {
+    fn share(&self) -> String {
+        format!(
+            "{:?}{:?}{:.3}",
+            num_to_char(self.minutes.unwrap_or_default() as u8),
+            num_to_char(self.seconds.unwrap_or_default() as u8),
+            self.milliseconds.unwrap_or_default()
+        )
     }
 }
 
@@ -73,6 +95,6 @@ impl Settings {
     /// Produce a sharable string representation of the settings.
     /// Currently JSON, kept intentionally simple so it's easy to extend.
     pub fn share(data: &Data) -> String {
-        serde_json::to_string(data).unwrap_or_default()
+        data.share()
     }
 }
