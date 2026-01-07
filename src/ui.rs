@@ -1,4 +1,8 @@
-use std::ops::Sub;
+use std::{
+    env::current_exe,
+    ops::Sub,
+    process::{Command, Stdio},
+};
 
 use gpui::{
     App, AppContext, Context, Entity, FocusHandle, Hsla, IntoElement, ParentElement, Render,
@@ -228,7 +232,12 @@ impl Render for Activate {
                     if clicks.contains(&0) {
                         println!("Start clicking");
                         view.is_clicking = true;
-                        daemon_start();
+                        // Command::new(program);
+                        let myself = current_exe().unwrap();
+                        let child = Command::new(myself)
+                            .arg("start")
+                            .stdout(Stdio::inherit())
+                            .spawn();
                     }
                     if clicks.contains(&1) {
                         println!("Stop clicking");

@@ -21,6 +21,12 @@ impl Default for Data {
         }
     }
 }
+impl Data {
+    pub fn merge_default(&self) -> Data {
+        let default = Data::default();
+        self.merge(default)
+    }
+}
 
 trait Merge {
     type Other;

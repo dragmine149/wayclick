@@ -19,6 +19,8 @@ use std::{
     thread,
 };
 
+use crate::storage::{Data, Settings};
+
 #[derive(Parser, Debug)]
 #[command(
     version,
@@ -108,8 +110,12 @@ pub fn daemon_start() {
         .show()
         .unwrap();
 
+    let data = Settings::load_data().merge_default();
+    let time =
+        data.milliseconds.unwrap() + data.seconds.unwrap() * 1000 + data.minutes.unwrap() * 60_000;
+
     while running.load(Ordering::SeqCst) {
-        thread::sleep(std::time::Duration::from_secs(1));
+        thread::sleep(std::time::Duration::from_millis(time));
         enigo
             .button(enigo::Button::Left, enigo::Direction::Click)
             .unwrap();
