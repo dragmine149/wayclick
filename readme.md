@@ -31,3 +31,6 @@ I **Highly** recommend using the system to assign a shortcut to either the `stop
 ## MSRV
 
 `1.88` is the current Minimum Support Rust Version. Aka, if a dependency requires a MSRV of x.y.z, we will also require that or newer.
+
+## Tests
+There are no tests, just because i'm not fully sure on how to automate testing a tool such as this.
