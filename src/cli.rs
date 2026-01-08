@@ -47,6 +47,7 @@ pub enum Subcommands {
     Ui,
 }
 
+/// Get the file path where we store the pid.
 fn pid_file_path() -> PathBuf {
     dirs::runtime_dir()
         .or_else(|| dirs::cache_dir())
@@ -54,6 +55,8 @@ fn pid_file_path() -> PathBuf {
         .join("wayclick.pid")
 }
 
+/// Return a copy of a file where we've obtained the lock.
+/// NOTE: The lock might not be fully required and seems to be unix only. As much as this doesn't matter, this could be a point of change.
 fn obtain_lock() -> Flock<File> {
     let path = pid_file_path();
     let file = OpenOptions::new()
@@ -72,6 +75,7 @@ fn obtain_lock() -> Flock<File> {
     file.unwrap()
 }
 
+/// Write out current pid to the file.
 fn write_pid(mut file: &File) {
     let pid = process::id().to_string();
     file.set_len(0).unwrap();
@@ -79,6 +83,7 @@ fn write_pid(mut file: &File) {
     file.sync_all().unwrap();
 }
 
+/// Attempts to read the pid from the file and returns a dedicated pid object.
 fn read_pid() -> Option<Pid> {
     let mut buf = String::new();
     File::open(pid_file_path())
@@ -88,6 +93,8 @@ fn read_pid() -> Option<Pid> {
         .map(Pid::from_raw)
 }
 
+/// Start the autoclicker.
+/// TODO: Clean up this code and separate some of it out?
 pub fn daemon_start() {
     Notification::new()
         .summary("Wayclick")
@@ -132,6 +139,8 @@ pub fn daemon_start() {
     println!("Daemon stopping…");
 }
 
+/// Stop the autoclicker by getting the pid and sending a term signal.
+/// TODO: Just in case of emergency, add a way to send a kill signal (SIGKILL)
 pub fn daemon_stop() {
     match read_pid() {
         Some(pid) => {
@@ -145,12 +154,10 @@ pub fn daemon_stop() {
     }
 }
 
+/// Toggle the state of the autoclicker.
+///
+/// State is gotten from if we have a pid file.
 pub fn toggle_daemon() {
-    Notification::new()
-        .summary("Wayclick")
-        .body("e2")
-        .show()
-        .unwrap();
     match read_pid() {
         Some(_) => daemon_stop(),
         None => daemon_start(),

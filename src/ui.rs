@@ -1,15 +1,14 @@
 use std::{
     env::current_exe,
-    ops::Sub,
     process::{Command, Stdio},
 };
 
 use gpui::{
-    App, AppContext, Context, Entity, FocusHandle, Hsla, IntoElement, ParentElement, Render,
-    Styled, Subscription, Window, div,
+    App, AppContext, Context, Entity, Hsla, IntoElement, ParentElement, Render, Styled,
+    Subscription, Window, div,
 };
 use gpui_component::{
-    Disableable, DivInspector, Selectable, StyledExt,
+    Disableable, DivInspector, StyledExt,
     button::{Button, ButtonGroup},
     group_box::GroupBox,
     input::{InputEvent, InputState, NumberInput, NumberInputEvent, StepAction},
@@ -18,10 +17,19 @@ use gpui_component::{
 use regex::Regex;
 
 use crate::{
-    cli::{daemon_start, daemon_stop},
-    storage::{Data, DataBuilder, Settings},
+    cli::daemon_stop,
+    storage::{DataBuilder, Settings},
 };
 
+// To avoid re-explaining myself. I'll explain functions here
+//
+// view -> Generates a unique Entity based off self
+// new -> Creates the struct
+// on_focus -> Runs codes when the WINDOW is focused
+// on_number_input_event -> Specific listener for number incremental.
+// on_input_event -> Listening for text input
+
+/// Custom struct to handle UI elements related to the interval input.
 pub struct IntervalInput {
     minute_input: Entity<InputState>,
     minute_value: u64,
@@ -125,7 +133,7 @@ impl IntervalInput {
                         .milliseconds(self.millisecond_value)
                         .build()
                         .unwrap();
-                    Settings::save_data(data);
+                    Settings::save_data(&data);
                 }
             }
             InputEvent::Focus => println!("Focused... {:?}", state),
@@ -205,6 +213,7 @@ impl Render for IntervalInput {
     }
 }
 
+/// Custom struct for the initial interval before autoclicking
 pub struct InitialInterval {
     second_input: Entity<InputState>,
     second_value: u64,
@@ -266,7 +275,7 @@ impl InitialInterval {
                         .initial(self.second_value)
                         .build()
                         .unwrap();
-                    Settings::save_data(data);
+                    Settings::save_data(&data);
                 }
             }
             InputEvent::Focus => println!("Focused... {:?}", state),
@@ -313,13 +322,14 @@ impl Render for InitialInterval {
             .border_1()
             .border_color(Hsla::black())
             .v_flex()
-            .title("Interval")
+            .title("Initial Interval")
             .child(div().h_flex().size_full().children(vec![
                 NumberInput::new(&self.second_input).suffix("seconds before autoclicking"),
             ]))
     }
 }
 
+/// Struct for if the clicker is activated or not.
 pub struct Activate {
     is_clicking: bool,
 }
@@ -364,9 +374,10 @@ impl Render for Activate {
     }
 }
 
+// Custom click UI to manage every other UI element
 pub struct ClickUI {
     interval: Entity<IntervalInput>,
-    inital: Entity<InitialInterval>,
+    initial: Entity<InitialInterval>,
     inspector: Entity<DivInspector>,
     activate: Entity<Activate>,
     _subscriptions: Vec<Subscription>,
@@ -379,7 +390,7 @@ impl ClickUI {
 
     fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
         let interval = IntervalInput::view(window, cx);
-        let inital = InitialInterval::view(window, cx);
+        let initial = InitialInterval::view(window, cx);
         let inspector = cx.new(|cx| DivInspector::new(window, cx));
         let activate = Activate::view(window, cx);
 
@@ -389,7 +400,7 @@ impl ClickUI {
 
         Self {
             interval,
-            inital,
+            initial,
             inspector,
             activate,
             _subscriptions,
@@ -405,7 +416,7 @@ impl Render for ClickUI {
             .justify_center()
             .child(self.inspector.clone())
             .child(Label::new("WayClicker").text_3xl().font_bold())
-            .child(self.inital.clone())
+            .child(self.initial.clone())
             .child(self.interval.clone())
             .child(self.activate.clone())
     }

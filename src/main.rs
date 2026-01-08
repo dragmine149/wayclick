@@ -18,6 +18,7 @@ fn main() {
         .show()
         .unwrap();
 
+    // switch between modes.
     match cli.commands {
         Some(sub_commands) => match sub_commands {
             cli::Subcommands::Start => daemon_start(),

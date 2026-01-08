@@ -2,6 +2,7 @@ use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf};
 
+/// Custom data struct storing all of the settings.
 #[derive(Debug, Serialize, Deserialize, Builder)]
 #[builder(setter(into, strip_option), default)]
 #[serde(default)]
@@ -24,11 +25,14 @@ impl Default for Data {
     }
 }
 impl Data {
+    /// Merge the data struct with default data.
     pub fn merge_default(&self) -> Data {
         let default = Data::default();
         self.merge(default)
     }
 
+    /// Forcable verify the data and re-save it.
+    /// Yes we don't need to limit it, but it's just nicer to do so.
     pub fn verify(&mut self) {
         if self.minutes.unwrap() > 59 {
             self.minutes = Some(59);
@@ -39,20 +43,24 @@ impl Data {
         if self.milliseconds.unwrap() > 999 {
             self.milliseconds = Some(999)
         }
+        Settings::save_data(self);
     }
 }
 
+/// Trait for merging 2 of the same things into a new one.
 trait Merge {
-    type Other;
-    fn merge(&self, other: Self::Other) -> Self;
+    fn merge(&self, other: Self) -> Self;
 }
+/// A custom trait for making a struct into a sharable object.
 trait Sharable {
+    /// Convert this struct into a sharable object.
     fn share(&self) -> String;
+
+    /// Load a previously shared string.
+    fn load_share(share_string: &str) -> Self;
 }
 impl Merge for Data {
-    type Other = Data;
-
-    fn merge(&self, other: Self::Other) -> Self {
+    fn merge(&self, other: Self) -> Self {
         Self {
             milliseconds: self.milliseconds.or(other.milliseconds),
             seconds: self.seconds.or(other.seconds),
@@ -79,23 +87,32 @@ impl Sharable for Data {
             self.milliseconds.unwrap_or_default()
         )
     }
+
+    fn load_share(share_string: &str) -> Self {
+        todo!()
+    }
 }
 
+/// Default config dir
 fn config_dir() -> PathBuf {
     dirs::config_dir().unwrap().join("wayclick")
 }
+/// Path of settings
 pub fn save_path() -> PathBuf {
     config_dir().join("settings.json")
 }
+/// Path of themes
 pub fn theme_dir() -> PathBuf {
     config_dir().join("themes")
 }
+/// Path of zed themes so we can also use them.
 pub fn zed_theme_dir() -> PathBuf {
     dirs::config_dir().unwrap().join("zed/themes")
 }
 
 pub struct Settings;
 impl Settings {
+    /// Load the data from the file system, or the default data if no data exists.
     pub fn load_data() -> Data {
         let path = save_path();
         let mut data = match fs::read_to_string(&path) {
@@ -106,7 +123,8 @@ impl Settings {
         data
     }
 
-    pub fn save_data(data: Data) {
+    /// Save data to the file system.
+    pub fn save_data(data: &Data) {
         let path = save_path();
 
         // Load previously stored data to fill in any missing fields

@@ -6,6 +6,7 @@ use gpui::*;
 use gpui_component::*;
 use gpui_component_assets::Assets;
 
+/// The main UI of the app, built upon zed gpui.
 pub fn ui_main() {
     let app = Application::new().with_assets(Assets);
 
@@ -13,6 +14,8 @@ pub fn ui_main() {
         // This must be called before using any GPUI Component features.
         gpui_component::init(cx);
 
+        // load the theme, thankfully we don't really have to make them.
+        // TODO: Move this into it's own special location so that we can read the `zed_theme_dir()` as well as change it in the ui.
         let theme_name = SharedString::from(Settings::load_data().theme.unwrap_or_default());
         if let Err(err) = ThemeRegistry::watch_dir(theme_dir(), cx, move |cx| {
             if let Some(theme) = ThemeRegistry::global(cx).themes().get(&theme_name).cloned() {
@@ -23,6 +26,7 @@ pub fn ui_main() {
             eprintln!("Failed to watch themes directory: {}", err);
         }
 
+        // actually open gpui.
         cx.spawn(async move |cx| {
             let options = WindowOptions {
                 titlebar: Some(TitlebarOptions {
