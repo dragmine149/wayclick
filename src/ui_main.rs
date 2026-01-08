@@ -2,8 +2,8 @@ use crate::{
     storage::{Settings, theme_dir},
     ui::ClickUI,
 };
-use gpui::*;
-use gpui_component::*;
+use gpui::{AppContext, Application, TitlebarOptions, WindowOptions};
+use gpui_component::Root;
 use gpui_component_assets::Assets;
 
 /// The main UI of the app, built upon zed gpui.

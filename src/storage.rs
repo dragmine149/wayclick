@@ -1,6 +1,9 @@
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
-use std::{fs, path::PathBuf};
+use std::{
+    fs::{self, ReadDir},
+    path::PathBuf,
+};
 
 /// Custom data struct storing all of the settings.
 #[derive(Debug, Serialize, Deserialize, Builder)]
@@ -78,10 +81,18 @@ fn num_to_char(n: u8) -> Option<char> {
         _ => None,
     }
 }
+fn char_to_num(c: char) -> Option<u8> {
+    match c {
+        '0'..='9' => Some((c as u8) - b'0'),
+        'A'..='Z' => Some((c as u8) - b'A' + 10),
+        'a'..='z' => Some((c as u8) - b'a' + 36),
+        _ => None,
+    }
+}
 impl Sharable for Data {
     fn share(&self) -> String {
         format!(
-            "{:?}{:?}{:.3}",
+            "{:?}{:?}{:04}",
             num_to_char(self.minutes.unwrap_or_default() as u8),
             num_to_char(self.seconds.unwrap_or_default() as u8),
             self.milliseconds.unwrap_or_default()
@@ -89,7 +100,22 @@ impl Sharable for Data {
     }
 
     fn load_share(share_string: &str) -> Self {
-        todo!()
+        let mut chars = share_string.chars();
+        let minutes = char_to_num(chars.next().unwrap())
+            .expect("Invalid char at position 1: Can't convert to minutes");
+        let seconds = char_to_num(chars.next().unwrap())
+            .expect("Invalid char at position 2: Can't convert to seconds");
+        let milliseconds = chars
+            .take(4)
+            .collect::<String>()
+            .parse::<u64>()
+            .expect("Failed to convert position 3..6 to milliseconds");
+        Self {
+            minutes: Some(minutes as u64),
+            seconds: Some(seconds as u64),
+            milliseconds: Some(milliseconds),
+            ..Default::default()
+        }
     }
 }
 
@@ -140,11 +166,5 @@ impl Settings {
             &path,
             serde_json::to_string_pretty(&merged).unwrap_or_else(|_| "{}".into()),
         );
-    }
-
-    /// Produce a sharable string representation of the settings.
-    /// Currently JSON, kept intentionally simple so it's easy to extend.
-    pub fn share(data: &Data) -> String {
-        data.share()
     }
 }

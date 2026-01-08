@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand, builder::ArgPredicate};
+use clap::{Parser, Subcommand};
 use enigo::{Enigo, Mouse};
 use nix::{
     fcntl::Flock,
@@ -9,7 +9,7 @@ use notify_rust::Notification;
 use std::{
     fs::{File, OpenOptions},
     io::{Read, Write},
-    os::{fd::AsRawFd, unix::fs::OpenOptionsExt},
+    os::unix::fs::OpenOptionsExt,
     path::PathBuf,
     process,
     sync::{
@@ -20,7 +20,7 @@ use std::{
     time::Duration,
 };
 
-use crate::storage::{Data, Settings};
+use crate::storage::Settings;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -50,7 +50,7 @@ pub enum Subcommands {
 /// Get the file path where we store the pid.
 fn pid_file_path() -> PathBuf {
     dirs::runtime_dir()
-        .or_else(|| dirs::cache_dir())
+        .or_else(dirs::cache_dir)
         .expect("Can't find a place to write lock file")
         .join("wayclick.pid")
 }
@@ -61,6 +61,7 @@ fn obtain_lock() -> Flock<File> {
     let path = pid_file_path();
     let file = OpenOptions::new()
         .create(true)
+        .truncate(true)
         .read(true)
         .write(true)
         .mode(0o600)
@@ -144,7 +145,8 @@ pub fn daemon_start() {
 pub fn daemon_stop() {
     match read_pid() {
         Some(pid) => {
-            kill(pid, Signal::SIGTERM).expect(&format!("Failed to send SIGTERM ({})", pid));
+            kill(pid, Signal::SIGTERM)
+                .unwrap_or_else(|_| panic!("Failed to send SIGTERM ({})", pid));
             std::fs::remove_file(pid_file_path()).ok();
             println!("Sent SIGTERM to {pid}");
         }

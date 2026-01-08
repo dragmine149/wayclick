@@ -316,7 +316,7 @@ impl InitialInterval {
 }
 
 impl Render for InitialInterval {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
         GroupBox::new()
             .size_full()
             .border_1()
@@ -337,12 +337,12 @@ impl Activate {
     pub fn view(window: &mut Window, cx: &mut App) -> Entity<Self> {
         cx.new(|cx| Self::new(window, cx))
     }
-    pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
+    pub fn new(_: &mut Window, _: &mut Context<Self>) -> Self {
         Self { is_clicking: false }
     }
 }
 impl Render for Activate {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         div().size_full().child(
             ButtonGroup::new("activation-group")
                 .children(vec![
@@ -353,34 +353,36 @@ impl Render for Activate {
                         .label("Stop Autoclicking")
                         .disabled(!self.is_clicking),
                 ])
-                .on_click(cx.listener(|view, clicks: &Vec<usize>, window, cx| {
-                    if clicks.contains(&0) {
-                        println!("Start clicking");
-                        view.is_clicking = true;
-                        // Command::new(program);
-                        let myself = current_exe().unwrap();
-                        let child = Command::new(myself)
-                            .arg("start")
-                            .stdout(Stdio::inherit())
-                            .spawn();
-                    }
-                    if clicks.contains(&1) {
-                        println!("Stop clicking");
-                        view.is_clicking = false;
-                        daemon_stop();
-                    }
-                })),
+                .on_click(cx.listener(
+                    |view, clicks: &Vec<usize>, _: &mut Window, _: &mut Context<Self>| {
+                        if clicks.contains(&0) {
+                            println!("Start clicking");
+                            view.is_clicking = true;
+                            // Command::new(program);
+                            let myself = current_exe().unwrap();
+                            let _ = Command::new(myself)
+                                .arg("start")
+                                .stdout(Stdio::inherit())
+                                .spawn();
+                        }
+                        if clicks.contains(&1) {
+                            println!("Stop clicking");
+                            view.is_clicking = false;
+                            daemon_stop();
+                        }
+                    },
+                )),
         )
     }
 }
 
 // Custom click UI to manage every other UI element
 pub struct ClickUI {
+    inspector: Entity<DivInspector>,
+
     interval: Entity<IntervalInput>,
     initial: Entity<InitialInterval>,
-    inspector: Entity<DivInspector>,
     activate: Entity<Activate>,
-    _subscriptions: Vec<Subscription>,
 }
 
 impl ClickUI {
@@ -389,27 +391,23 @@ impl ClickUI {
     }
 
     fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
+        let inspector = cx.new(|cx| DivInspector::new(window, cx));
+
         let interval = IntervalInput::view(window, cx);
         let initial = InitialInterval::view(window, cx);
-        let inspector = cx.new(|cx| DivInspector::new(window, cx));
         let activate = Activate::view(window, cx);
 
-        let _subscriptions = vec![cx.observe_window_activation(window, |this, window, cx| {
-            println!("window activation: {}", window.is_window_active())
-        })];
-
         Self {
+            inspector,
             interval,
             initial,
-            inspector,
             activate,
-            _subscriptions,
         }
     }
 }
 
 impl Render for ClickUI {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
         div()
             .v_flex()
             .items_center()
