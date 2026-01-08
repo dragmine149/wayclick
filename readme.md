@@ -6,9 +6,8 @@ An autoclicker/macro designed for wayland compositors.
 - [X] Wayland*
 
 ### Notes
-I've only tested this on `Fedora 43, KDE Plasma 6.5.4, Wayland`, aka my setup. In theory it should work for any system which can run the following:
-- [zed](https://zed.dev/) (for gpui)
-- [enigo](https://crates.io/crates/enigo) (for clicking)
+I've only tested this on `Fedora 43, KDE Plasma 6.5.4, Wayland`, aka my setup. In practice however, most of this code might run on any system. It doesn't mean i'll support those systems, use something like [OpAutoClicker](https://www.opautoclicker.com/)
+instead.
 
 ## Usage
 There are 2 modes to this program, CLI-based and UI-based.

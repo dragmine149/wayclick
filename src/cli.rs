@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand, builder::ArgPredicate};
 use enigo::{Enigo, Mouse};
 use nix::{
+    fcntl::Flock,
     sys::signal::{Signal, kill},
     unistd::Pid,
 };
@@ -53,7 +54,7 @@ fn pid_file_path() -> PathBuf {
         .join("wayclick.pid")
 }
 
-fn obtain_lock() -> File {
+fn obtain_lock() -> Flock<File> {
     let path = pid_file_path();
     let file = OpenOptions::new()
         .create(true)
@@ -63,16 +64,12 @@ fn obtain_lock() -> File {
         .open(&path)
         .expect("Cannot open pid-file");
     // exclusive, non-blocking lock
-    if nix::fcntl::flock(
-        file.as_raw_fd(),
-        nix::fcntl::FlockArg::LockExclusiveNonblock,
-    )
-    .is_err()
-    {
+    let file = Flock::lock(file, nix::fcntl::FlockArg::LockExclusiveNonblock);
+    if file.is_err() {
         eprintln!("Another instance is already running.");
         process::exit(1);
     }
-    file
+    file.unwrap()
 }
 
 fn write_pid(mut file: &File) {
