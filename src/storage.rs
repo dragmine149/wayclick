@@ -1,12 +1,9 @@
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
-use std::{
-    fs::{self, ReadDir},
-    path::PathBuf,
-};
+use std::{fs, path::PathBuf};
 
 /// Custom data struct storing all of the settings.
-#[derive(Debug, Serialize, Deserialize, Builder)]
+#[derive(Debug, Serialize, Deserialize, Builder, PartialEq, Eq)]
 #[builder(setter(into, strip_option), default)]
 #[serde(default)]
 pub struct Data {
@@ -37,16 +34,30 @@ impl Data {
     /// Forcable verify the data and re-save it.
     /// Yes we don't need to limit it, but it's just nicer to do so.
     pub fn verify(&mut self) {
+        let mut changed = false;
         if self.minutes.unwrap() > 59 {
             self.minutes = Some(59);
+            changed = true;
         }
         if self.seconds.unwrap() > 59 {
             self.seconds = Some(59);
+            changed = true;
         }
         if self.milliseconds.unwrap() > 999 {
-            self.milliseconds = Some(999)
+            self.milliseconds = Some(999);
+            changed = true;
         }
-        Settings::save_data(self);
+        if changed {
+            Settings::save_data(self);
+        }
+    }
+
+    pub fn no_option(&self) -> bool {
+        self.milliseconds.is_some()
+            && self.seconds.is_some()
+            && self.minutes.is_some()
+            && self.theme.is_some()
+            && self.initial.is_some()
     }
 }
 
@@ -153,9 +164,16 @@ impl Settings {
     pub fn save_data(data: &Data) {
         let path = save_path();
 
-        // Load previously stored data to fill in any missing fields
-        let stored = Settings::load_data();
-        let merged = data.merge(stored);
+        let merged = if !data.no_option() {
+            // Load previously stored data to fill in any missing fields
+            let stored = Settings::load_data();
+            if *data == stored {
+                return;
+            }
+            &data.merge(stored)
+        } else {
+            data
+        };
 
         // Ensure the config directory exists, then write the merged settings
         if let Some(parent) = path.parent() {
@@ -164,7 +182,7 @@ impl Settings {
 
         let _ = fs::write(
             &path,
-            serde_json::to_string_pretty(&merged).unwrap_or_else(|_| "{}".into()),
+            serde_json::to_string(&merged).unwrap_or_else(|_| "{}".into()),
         );
     }
 }
