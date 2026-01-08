@@ -8,8 +8,7 @@ use notify_rust::Notification;
 use std::{
     fs::{File, OpenOptions},
     io::{Read, Write},
-    os::fd::AsRawFd,
-    os::unix::fs::OpenOptionsExt,
+    os::{fd::AsRawFd, unix::fs::OpenOptionsExt},
     path::PathBuf,
     process,
     sync::{
@@ -17,6 +16,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
     },
     thread,
+    time::Duration,
 };
 
 use crate::storage::{Data, Settings};
@@ -104,23 +104,34 @@ pub fn daemon_start() {
     let running = Arc::new(AtomicBool::new(true));
     let mut enigo = Enigo::new(&enigo::Settings::default()).unwrap();
     println!("Daemon running… press Ctrl-C or send SIGTERM to stop.");
-    Notification::new()
-        .summary("Wayclick")
-        .body("Autoclicking...")
-        .timeout(0)
-        .show()
-        .unwrap();
 
     let data = Settings::load_data().merge_default();
     let time =
         data.milliseconds.unwrap() + data.seconds.unwrap() * 1000 + data.minutes.unwrap() * 60_000;
+    let initial_timeout = Duration::from_secs(data.initial.unwrap() + 1);
+
+    let mut notification = Notification::new()
+        .summary("Wayclick")
+        .body(&format!(
+            "Starting autoclicking in {} seconds",
+            data.initial.unwrap()
+        ))
+        .timeout(initial_timeout)
+        .show()
+        .unwrap();
+
+    thread::sleep(initial_timeout);
+    notification.body("Autoclicking...").timeout(0);
+    notification.update();
 
     while running.load(Ordering::SeqCst) {
-        thread::sleep(std::time::Duration::from_millis(time));
+        thread::sleep(Duration::from_millis(time));
         enigo
             .button(enigo::Button::Left, enigo::Direction::Click)
             .unwrap();
     }
+    notification.body("Autoclicking finished").timeout(2);
+    notification.update();
     println!("Daemon stopping…");
 }
 

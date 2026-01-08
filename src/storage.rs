@@ -9,6 +9,7 @@ pub struct Data {
     pub minutes: Option<u64>,
     pub seconds: Option<u64>,
     pub milliseconds: Option<u64>,
+    pub initial: Option<u64>,
     pub theme: Option<String>,
 }
 impl Default for Data {
@@ -17,6 +18,7 @@ impl Default for Data {
             minutes: Some(0),
             seconds: Some(0),
             milliseconds: Some(100),
+            initial: Some(0),
             theme: Some("Catppuccin Mocha".into()),
         }
     }
@@ -25,6 +27,18 @@ impl Data {
     pub fn merge_default(&self) -> Data {
         let default = Data::default();
         self.merge(default)
+    }
+
+    pub fn verify(&mut self) {
+        if self.minutes.unwrap() > 59 {
+            self.minutes = Some(59);
+        }
+        if self.seconds.unwrap() > 59 {
+            self.seconds = Some(59);
+        }
+        if self.milliseconds.unwrap() > 999 {
+            self.milliseconds = Some(999)
+        }
     }
 }
 
@@ -43,6 +57,7 @@ impl Merge for Data {
             milliseconds: self.milliseconds.or(other.milliseconds),
             seconds: self.seconds.or(other.seconds),
             minutes: self.minutes.or(other.minutes),
+            initial: self.initial.or(other.initial),
             theme: self.theme.clone().or(other.theme),
         }
     }
@@ -83,10 +98,12 @@ pub struct Settings;
 impl Settings {
     pub fn load_data() -> Data {
         let path = save_path();
-        match fs::read_to_string(&path) {
+        let mut data = match fs::read_to_string(&path) {
             Ok(contents) => serde_json::from_str::<Data>(&contents).unwrap_or_default(),
             Err(_) => Data::default(),
-        }
+        };
+        data.verify();
+        data
     }
 
     pub fn save_data(data: Data) {
