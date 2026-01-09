@@ -329,6 +329,60 @@ impl Render for InitialInterval {
     }
 }
 
+pub enum StopMode {
+	Clicks,
+	Time,
+	None
+}
+
+pub struct StopAfter {
+    click_input: Entity<InputState>,
+    click_count: u64,
+    hour_input: Entity<InputState>,
+    hour_value: u64,
+    minute_input: Entity<InputState>,
+    minute_value: u64,
+    second_input: Entity<InputState>,
+    second_value: u64,
+    millisecond_input: Entity<InputState>,
+    millisecond_value: u64,
+    stop_mode: StopMode,
+}
+
+impl StopAfter {
+		pub fn view(window: &mut Window, cx: &mut App) -> Entity<Self> {
+				cx.new(|cx| Self::new(window, cx))
+		}
+		fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
+				let hour_input = cx.new(|cx| InputState::new(window, cx).default_value("0"));
+				let minute_input = cx.new(|cx| InputState::new(window, cx).default_value("0"));
+				let second_input = cx.new(|cx| InputState::new(window, cx).default_value("0"));
+				let millisecond_input = cx.new(|cx| InputState::new(window, cx).default_value("0"));
+				let click_input = cx.new(|cx| InputState::new(window, cx).default_value("0"));
+
+				Self {
+					hour_input,
+					hour_value: 0,
+					minute_input,
+					minute_value: 0,
+					second_input,
+					second_value: 0,
+					millisecond_input,
+					millisecond_value: 0,
+					stop_mode: StopMode::None,
+					click_input,
+					click_count: 0,
+				}
+		}
+}
+impl Render for StopAfter {
+		fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+				GroupBox::new().size_full().border_1().v_flex().title("Stop After").child(
+						div().size_full().children(vec![div()])
+				)
+		}
+}
+
 /// Struct for if the clicker is activated or not.
 pub struct Activate {
     is_clicking: bool,
