@@ -1,18 +1,15 @@
-use enigo::Key;
-use evdev::{Device, KeyCode, KeyEvent, MiscCode};
+use evdev::{KeyCode, MiscCode};
 use gpui::{
-    self, App, AppContext, ClickEvent, Context, Entity, InputEvent, InteractiveElement,
-    IntoElement, Keystroke, KeystrokeEvent, MouseUpEvent, ParentElement, Render, Rgba, Styled,
-    Subscription, Window, div,
+    self, App, AppContext, Context, Entity, IntoElement, Keystroke, KeystrokeEvent, ParentElement,
+    Render, Styled, Subscription, Window, div,
 };
 use gpui_component::{
     StyledExt,
     button::{Button, Toggle},
-    gray_400, gray_900,
+    gray_900,
     input::{InputState, NumberInput},
 };
-use itertools::Itertools;
-use std::{fmt::Debug, ops::Sub};
+use std::fmt::Debug;
 
 enum Action {
     KeyEvent(KeyCode),
@@ -151,7 +148,7 @@ impl Render for KeyEditor {
             .label(if self.key_subscription.is_some() {
                 "Listening for input...".into()
             } else {
-                format!("{}", self.keystroke.key)
+                self.keystroke.key.to_string()
             })
             .on_click(cx.listener(|this, _, _, cx| {
                 this.subscribe(cx);
