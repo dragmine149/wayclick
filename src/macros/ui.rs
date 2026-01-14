@@ -1,8 +1,9 @@
 use evdev::{KeyCode, MiscCode};
 use gpui::{
-    self, App, AppContext, Context, Entity, IntoElement, Keystroke, KeystrokeEvent, ParentElement,
-    Render, Styled, Subscription, Window, div,
+    self, App, AppContext, Context, Entity, Focusable, IntoElement, KeyDownEvent, Keystroke,
+    KeystrokeEvent, ParentElement, Render, Styled, Subscription, Window, div,
 };
+use gpui::{EventEmitter, InteractiveElement};
 use gpui_component::{
     StyledExt,
     button::{Button, Toggle},
@@ -112,7 +113,7 @@ pub struct KeyEditor {
     keystroke: Keystroke,
     key_subscription: Option<Vec<Subscription>>,
 }
-
+impl EventEmitter<KeyDownEvent> for KeyEditor {}
 impl KeyEditor {
     pub fn view(window: &mut Window, cx: &mut App) -> Entity<Self> {
         cx.new(|cx| Self::new(window, cx))
@@ -125,16 +126,24 @@ impl KeyEditor {
         }
     }
 
-    fn subscribe(&mut self, cx: &mut Context<Self>) {
-        let listener = cx.listener(|this, event: &KeystrokeEvent, window, cx| {
+    fn subscribe(&mut self, cx: &mut Context<Self>, window: &mut Window) {
+        let key_down_listener = cx.listener(|this, event: &KeyDownEvent, window, cx| {
             println!("input! {:?}", event);
             this.keystroke = event.keystroke.to_owned();
             // this sends a slightly quicker update than waiting for the subscription to be dropped.
             cx.notify();
             this.unsubscribe();
         });
-        let sub = cx.intercept_keystrokes(listener);
-        self.key_subscription = Some(vec![sub]);
+
+        cx.focus_self(window);
+        // let sub = window.subscribe(self, cx, |this, ev: &KeyDownEvent, cx| {
+        //     println!("input! {:?}", ev);
+        //     cx.notify();
+        // });
+
+        // let sub = cx.intercept_keystrokes(listener);
+        // self.key_subscription = Some(vec![sub]);
+        self.key_subscription = Some(vec![]);
     }
 
     fn unsubscribe(&mut self) {
@@ -150,8 +159,14 @@ impl Render for KeyEditor {
             } else {
                 self.keystroke.key.to_string()
             })
-            .on_click(cx.listener(|this, _, _, cx| {
-                this.subscribe(cx);
+            .on_key_up(cx.listener(|this, ev, window, cx| {
+                println!("Up {:?}", ev);
+            }))
+            .on_key_down(cx.listener(|this, ev, window, cx| {
+                println!("Down {:?}", ev);
+            }))
+            .on_click(cx.listener(|this, ce, window, cx| {
+                this.subscribe(cx, window);
             }))
     }
 }
