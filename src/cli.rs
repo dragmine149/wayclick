@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use enigo::{Enigo, Mouse};
+use enigo::{Enigo, Keyboard, Mouse};
 use nix::{
     fcntl::Flock,
     sys::signal::{Signal, kill},
@@ -134,6 +134,10 @@ pub fn daemon_start() {
         enigo
             .button(enigo::Button::Left, enigo::Direction::Click)
             .unwrap();
+        // enigo.button(enigo::Button::Left, enigo::Direction::)
+        // enigo
+        //     .key(enigo::Key::Shift, enigo::Direction::Press)
+        //     .unwrap();
     }
     notification.body("Autoclicking finished").timeout(2);
     notification.update();

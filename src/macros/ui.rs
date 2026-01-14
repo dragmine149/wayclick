@@ -1,110 +1,137 @@
-use evdev::{KeyCode, MiscCode};
+use enigo::Direction;
 use gpui::{
-    self, App, AppContext, Context, Entity, Focusable, IntoElement, KeyDownEvent, Keystroke,
+    App, AppContext, Context, Corner, Entity, InteractiveElement, IntoElement, Keystroke,
     KeystrokeEvent, ParentElement, Render, Styled, Subscription, Window, div,
 };
-use gpui::{EventEmitter, InteractiveElement};
+use gpui_component::button::DropdownButton;
+use gpui_component::select::{SearchableVec, Select, SelectEvent, SelectState};
+use gpui_component::{IndexPath, StyledExt, gray_600};
 use gpui_component::{
-    StyledExt,
     button::{Button, Toggle},
-    gray_900,
     input::{InputState, NumberInput},
 };
-use std::fmt::Debug;
+use regex::Regex;
 
-enum Action {
-    KeyEvent(KeyCode),
-    MouseEvent(MiscCode),
-}
+use crate::macros::definitions::{MacroType, RawMacroEntry, from_direction_str, from_mouse_str};
 
-impl Debug for Action {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Action::KeyEvent(key_code) => {
-                write!(f, "{:?}", key_code)
-            }
-            Action::MouseEvent(misc_code) => write!(f, "{:?}", misc_code),
-        }
-    }
-}
-impl From<&Keystroke> for Action {
-    fn from(value: &Keystroke) -> Self {
-        let key_code = match value.key.as_str() {
-            "w" => KeyCode::KEY_W,
-            "a" => KeyCode::KEY_A,
-            "s" => KeyCode::KEY_S,
-            "d" => KeyCode::KEY_D,
-            _ => KeyCode::KEY_UNKNOWN,
-        };
-        Self::KeyEvent(key_code)
-    }
-}
+pub struct MacroEntryUI {
+    raw: RawMacroEntry,
+    editing: bool,
 
-// Share/Store this in a way of
-// |----||- -------| |------- -------- -------- --||---- -------- -------|
-// 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
-// press/releaase (1) mouse (6), key (10), length (27), repeat (21)
-pub struct MacroItem {
-    pressed: bool,
-    action: Action,
-    length: u64,
-
-    edit: bool,
-    length_edit: Entity<InputState>,
-    _subscriptions: Vec<Subscription>,
     key_editor: Entity<KeyEditor>,
+    for_input: Entity<InputState>,
+    repeat_input: Entity<InputState>,
+    direction_state: Entity<SelectState<Vec<&'static str>>>,
+    macro_type_state: Entity<SelectState<Vec<&'static str>>>,
+    mouse_state: Entity<SelectState<Vec<&'static str>>>,
 }
-
-impl MacroItem {
+impl MacroEntryUI {
     pub fn view(window: &mut Window, cx: &mut App) -> Entity<Self> {
         cx.new(|cx| Self::new(window, cx))
     }
-
     fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let length_edit = cx.new(|cx| InputState::new(window, cx).default_value(100.to_string()));
-        let _subscriptions = vec![];
         let key_editor = KeyEditor::view(window, cx);
+        let for_input = cx.new(
+            |cx| {
+                InputState::new(window, cx)
+                    .placeholder("Integer value")
+                    .pattern(Regex::new(r"^\d+$").unwrap())
+            }, // Only positive integers
+        );
+        let repeat_input = cx.new(
+            |cx| {
+                InputState::new(window, cx)
+                    .placeholder("Integer value")
+                    .pattern(Regex::new(r"^\d+$").unwrap())
+            }, // Only positive integers
+        );
+        let direction_state = cx.new(|cx| {
+            SelectState::new(
+                vec!["Press", "Release", "Click"],
+                Some(IndexPath::default()), // Select first item
+                window,
+                cx,
+            )
+        });
+        let mouse_state = cx.new(|cx| {
+            SelectState::new(
+                vec!["Left", "Middle", "Right", "Fourth", "Fifth"],
+                Some(IndexPath::default()), // Select first item
+                window,
+                cx,
+            )
+        });
+        let macro_type_state = cx.new(|cx| {
+            SelectState::new(
+                vec!["Mouse", "Key"],
+                Some(IndexPath::default()), // Select first item
+                window,
+                cx,
+            )
+        });
 
         Self {
-            pressed: false,
-            action: Action::KeyEvent(KeyCode::KEY_W),
-            length: 100,
-            edit: false,
-            length_edit,
-            _subscriptions,
+            raw: RawMacroEntry::default(),
+            editing: false,
             key_editor,
+            for_input,
+            repeat_input,
+            direction_state,
+            macro_type_state,
+            mouse_state,
         }
     }
+    pub fn load(&mut self, data: u64) -> Result<(), String> {
+        self.raw = RawMacroEntry::try_from(data)?;
+        Ok(())
+    }
+    pub fn save(&self) -> u64 {
+        u64::from(self.raw)
+    }
 }
-
-impl Render for MacroItem {
+impl Render for MacroEntryUI {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        if !self.edit {
+        // TODO: Improve this so we can use a subscription based system instead.
+        self.raw.direction =
+            from_direction_str(self.direction_state.read(cx).selected_value().unwrap())
+                .expect("Now how to deal with this...");
+        self.raw.macro_type =
+            MacroType::try_from(self.macro_type_state.read(cx).selected_value().unwrap())
+                .expect("...");
+        self.raw.data = match self.raw.macro_type {
+            MacroType::Mouse => from_mouse_str(self.mouse_state.read(cx).selected_value().unwrap())
+                .expect("Failed translate"),
+            MacroType::Key => self.key_editor.read(cx).as_code(),
+        };
+
+        if self.editing {
+            div()
+                .h_flex()
+                .bg(gray_600())
+                .p_4()
+                .child(Select::new(&self.direction_state))
+                .child(Select::new(&self.macro_type_state))
+                .child(match self.raw.macro_type {
+                    MacroType::Mouse => div().child(Select::new(&self.mouse_state)),
+                    MacroType::Key => div().child(self.key_editor.clone()),
+                })
+                .children(if self.raw.direction == Direction::Click {
+                    vec!["Every"]
+                } else {
+                    vec!["For"]
+                })
+                .child(NumberInput::new(&self.for_input).suffix("ms"))
+                .child("Repeat")
+                .child(NumberInput::new(&self.repeat_input).suffix(" times"))
+        } else {
             div().child(
-                Button::new("macro-action")
-                    .label(format!("{:?} for {}ms", self.action, self.length))
-                    .on_click(cx.listener(|this, _, window, _| {
-                        this.edit = true;
-                        window.refresh();
+                Button::new("macro-button")
+                    .label(format!("{}", self.raw))
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.editing = true;
+                        cx.notify();
                     })),
             )
-        } else {
-            div()
-                .p_4()
-                .bg(gray_900())
-                .h_flex()
-                .child(
-                    Toggle::new("some-toggle")
-                        .label(if self.pressed { "press" } else { "release" })
-                        .checked(self.pressed)
-                        .on_click(cx.listener(|view, checked, _, cx| {
-                            view.pressed = *checked;
-                            cx.notify();
-                        })),
-                )
-                .child(self.key_editor.clone())
-                .child("for")
-                .child(NumberInput::new(&self.length_edit).min_w_12())
         }
     }
 }
@@ -113,7 +140,6 @@ pub struct KeyEditor {
     keystroke: Keystroke,
     key_subscription: Option<Vec<Subscription>>,
 }
-impl EventEmitter<KeyDownEvent> for KeyEditor {}
 impl KeyEditor {
     pub fn view(window: &mut Window, cx: &mut App) -> Entity<Self> {
         cx.new(|cx| Self::new(window, cx))
@@ -127,27 +153,24 @@ impl KeyEditor {
     }
 
     fn subscribe(&mut self, cx: &mut Context<Self>, window: &mut Window) {
-        let key_down_listener = cx.listener(|this, event: &KeyDownEvent, window, cx| {
+        let key_down_listener = cx.listener(|this, event: &KeystrokeEvent, window, cx| {
             println!("input! {:?}", event);
             this.keystroke = event.keystroke.to_owned();
             // this sends a slightly quicker update than waiting for the subscription to be dropped.
             cx.notify();
             this.unsubscribe();
         });
-
-        cx.focus_self(window);
-        // let sub = window.subscribe(self, cx, |this, ev: &KeyDownEvent, cx| {
-        //     println!("input! {:?}", ev);
-        //     cx.notify();
-        // });
-
-        // let sub = cx.intercept_keystrokes(listener);
-        // self.key_subscription = Some(vec![sub]);
-        self.key_subscription = Some(vec![]);
+        let sub = cx.intercept_keystrokes(key_down_listener);
+        self.key_subscription = Some(vec![sub]);
+        // self.key_subscription = Some(vec![]);
     }
 
     fn unsubscribe(&mut self) {
         self.key_subscription = None;
+    }
+
+    fn as_code(&self) -> u16 {
+        0
     }
 }
 
@@ -159,12 +182,6 @@ impl Render for KeyEditor {
             } else {
                 self.keystroke.key.to_string()
             })
-            .on_key_up(cx.listener(|this, ev, window, cx| {
-                println!("Up {:?}", ev);
-            }))
-            .on_key_down(cx.listener(|this, ev, window, cx| {
-                println!("Down {:?}", ev);
-            }))
             .on_click(cx.listener(|this, ce, window, cx| {
                 this.subscribe(cx, window);
             }))

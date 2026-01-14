@@ -18,7 +18,7 @@ use regex::Regex;
 
 use crate::{
     cli::daemon_stop,
-    macros::ui::MacroItem,
+    macros::ui::MacroEntryUI,
     storage::{DataBuilder, Settings},
 };
 
@@ -442,7 +442,7 @@ pub struct ClickUI {
     initial: Entity<InitialInterval>,
     activate: Entity<Activate>,
 
-    macros: Entity<MacroItem>,
+    macros: Entity<MacroEntryUI>,
 }
 
 impl ClickUI {
@@ -457,7 +457,7 @@ impl ClickUI {
         let initial = InitialInterval::view(window, cx);
         let activate = Activate::view(window, cx);
 
-        let macros = MacroItem::view(window, cx);
+        let macros = MacroEntryUI::view(window, cx);
 
         Self {
             inspector,
