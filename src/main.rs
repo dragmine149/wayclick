@@ -1,4 +1,5 @@
 mod cli;
+mod macros;
 mod storage;
 mod ui;
 mod ui_main;

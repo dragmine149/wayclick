@@ -18,6 +18,7 @@ use regex::Regex;
 
 use crate::{
     cli::daemon_stop,
+    macros::ui::MacroItem,
     storage::{DataBuilder, Settings},
 };
 
@@ -330,9 +331,9 @@ impl Render for InitialInterval {
 }
 
 pub enum StopMode {
-	Clicks,
-	Time,
-	None
+    Clicks,
+    Time,
+    None,
 }
 
 pub struct StopAfter {
@@ -350,37 +351,40 @@ pub struct StopAfter {
 }
 
 impl StopAfter {
-		pub fn view(window: &mut Window, cx: &mut App) -> Entity<Self> {
-				cx.new(|cx| Self::new(window, cx))
-		}
-		fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
-				let hour_input = cx.new(|cx| InputState::new(window, cx).default_value("0"));
-				let minute_input = cx.new(|cx| InputState::new(window, cx).default_value("0"));
-				let second_input = cx.new(|cx| InputState::new(window, cx).default_value("0"));
-				let millisecond_input = cx.new(|cx| InputState::new(window, cx).default_value("0"));
-				let click_input = cx.new(|cx| InputState::new(window, cx).default_value("0"));
+    pub fn view(window: &mut Window, cx: &mut App) -> Entity<Self> {
+        cx.new(|cx| Self::new(window, cx))
+    }
+    fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
+        let hour_input = cx.new(|cx| InputState::new(window, cx).default_value("0"));
+        let minute_input = cx.new(|cx| InputState::new(window, cx).default_value("0"));
+        let second_input = cx.new(|cx| InputState::new(window, cx).default_value("0"));
+        let millisecond_input = cx.new(|cx| InputState::new(window, cx).default_value("0"));
+        let click_input = cx.new(|cx| InputState::new(window, cx).default_value("0"));
 
-				Self {
-					hour_input,
-					hour_value: 0,
-					minute_input,
-					minute_value: 0,
-					second_input,
-					second_value: 0,
-					millisecond_input,
-					millisecond_value: 0,
-					stop_mode: StopMode::None,
-					click_input,
-					click_count: 0,
-				}
-		}
+        Self {
+            hour_input,
+            hour_value: 0,
+            minute_input,
+            minute_value: 0,
+            second_input,
+            second_value: 0,
+            millisecond_input,
+            millisecond_value: 0,
+            stop_mode: StopMode::None,
+            click_input,
+            click_count: 0,
+        }
+    }
 }
 impl Render for StopAfter {
-		fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-				GroupBox::new().size_full().border_1().v_flex().title("Stop After").child(
-						div().size_full().children(vec![div()])
-				)
-		}
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        GroupBox::new()
+            .size_full()
+            .border_1()
+            .v_flex()
+            .title("Stop After")
+            .child(div().size_full().children(vec![div()]))
+    }
 }
 
 /// Struct for if the clicker is activated or not.
@@ -437,6 +441,8 @@ pub struct ClickUI {
     interval: Entity<IntervalInput>,
     initial: Entity<InitialInterval>,
     activate: Entity<Activate>,
+
+    macros: Entity<MacroItem>,
 }
 
 impl ClickUI {
@@ -451,11 +457,14 @@ impl ClickUI {
         let initial = InitialInterval::view(window, cx);
         let activate = Activate::view(window, cx);
 
+        let macros = MacroItem::view(window, cx);
+
         Self {
             inspector,
             interval,
             initial,
             activate,
+            macros,
         }
     }
 }
@@ -471,5 +480,6 @@ impl Render for ClickUI {
             .child(self.initial.clone())
             .child(self.interval.clone())
             .child(self.activate.clone())
+            .child(self.macros.clone())
     }
 }
