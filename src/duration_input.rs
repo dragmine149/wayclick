@@ -198,12 +198,11 @@ impl DurationInput {
     }
 
     /// listen for input events and update the value after parsing it.
-    /// TODO: verification?
     fn on_input_event(
         &mut self,
         state: &Entity<InputState>,
         event: &InputEvent,
-        _: &mut Window,
+        window: &mut Window,
         cx: &mut Context<Self>,
     ) {
         if let InputEvent::Change = event {
@@ -211,16 +210,32 @@ impl DurationInput {
             if let Ok(value) = text.parse::<u64>() {
                 match state {
                     val if val == &self.millisecond_input => {
-                        self.millisecond_value = value;
+                        self.millisecond_value = value.clamp(0, 999);
                     }
-                    val if val == &self.seconds_input => self.seconds_value = value,
-                    val if val == &self.minutes_input => self.minutes_value = value,
-                    val if val == &self.hours_input => self.hours_value = value,
+                    val if val == &self.seconds_input => self.seconds_value = value.clamp(0, 59),
+                    val if val == &self.minutes_input => self.minutes_value = value.clamp(0, 59),
+                    val if val == &self.hours_input => self.hours_value = value.clamp(0, 23),
                     val if val == &self.days_input => self.days_value = value,
                     _ => {}
                 }
             }
             cx.emit(InputEvent::Change);
+        }
+        if let InputEvent::Blur = event {
+            state.update(cx, |input, cx| {
+                input.set_value(
+                    match state {
+                        val if val == &self.millisecond_input => self.millisecond_value.to_string(),
+                        val if val == &self.seconds_input => self.seconds_value.to_string(),
+                        val if val == &self.minutes_input => self.minutes_value.to_string(),
+                        val if val == &self.hours_input => self.hours_value.to_string(),
+                        val if val == &self.days_input => self.days_value.to_string(),
+                        _ => "".into(),
+                    },
+                    window,
+                    cx,
+                );
+            })
         }
     }
 
