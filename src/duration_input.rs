@@ -206,24 +206,21 @@ impl DurationInput {
         _: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        match event {
-            InputEvent::Change => {
-                let text = state.read(cx).value();
-                if let Ok(value) = text.parse::<u64>() {
-                    match state {
-                        val if val == &self.millisecond_input => {
-                            self.millisecond_value = value;
-                        }
-                        val if val == &self.seconds_input => self.seconds_value = value,
-                        val if val == &self.minutes_input => self.minutes_value = value,
-                        val if val == &self.hours_input => self.hours_value = value,
-                        val if val == &self.days_input => self.days_value = value,
-                        _ => {}
+        if let InputEvent::Change = event {
+            let text = state.read(cx).value();
+            if let Ok(value) = text.parse::<u64>() {
+                match state {
+                    val if val == &self.millisecond_input => {
+                        self.millisecond_value = value;
                     }
+                    val if val == &self.seconds_input => self.seconds_value = value,
+                    val if val == &self.minutes_input => self.minutes_value = value,
+                    val if val == &self.hours_input => self.hours_value = value,
+                    val if val == &self.days_input => self.days_value = value,
+                    _ => {}
                 }
-                cx.emit(InputEvent::Change);
             }
-            _ => {}
+            cx.emit(InputEvent::Change);
         }
     }
 
@@ -324,7 +321,7 @@ impl Display for DurationInput {
     }
 }
 impl Render for DurationInput {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl gpui::IntoElement {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl gpui::IntoElement {
         let mut items = vec![];
         if self.days_visible {
             items.push(
