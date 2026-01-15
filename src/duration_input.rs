@@ -1,3 +1,5 @@
+//! Special file for a custom duration input.
+//! This takes 5 different [gpui_component::input::NumberInput] and makes them into a special type.
 use gpui::{
     App, AppContext, Context, Entity, EventEmitter, ParentElement, Render, Styled, Subscription,
     Window, div, px,
@@ -14,6 +16,39 @@ const HOUR_LENGTH: u64 = 60 * 60 * 1000;
 const MINUTE_LENGTH: u64 = 60 * 1000;
 const SECOND_LENGTH: u64 = 1000;
 
+/// The main struct, storing everything necessary for easy access to duration.
+///
+/// # Listeners
+/// The only event emitted is [gpui_component::input::InputEvent::Change] when that event happens. This happens when any of the 5 input fields detects a change.
+///
+/// # Example
+/// ```rs
+/// let duration_input = DurationInput::view(window, cx);
+/// // we only want mins/seconds/miliseconds
+/// duration_input
+///     .as_mut(cx)
+///     .visible_days(false)
+///     .visible_hours(false);
+///
+/// // subscribe to all events.
+/// let duration_sub = cx.subscribe(&duration_input, |this, duration, ev: &InputEvent, cx| {
+///     this.length = u64::from(duration.read(cx)) as u32;
+///     println!("{:?}", this.raw);
+/// });
+///
+/// let _subscriptions = vec![duration_sub];
+/// ```
+///
+/// # Conversions
+/// Converting to a u64 is possible via [u64::from] or [DurationInput::get_value].
+/// Converting back is only possible with [DurationInput::load_value].
+///
+/// Note: the provided u64 value is in **milliseconds**
+///
+/// # Display
+/// [DurationInput] implements Display with 2 possible options. `{}` and `{:#}`
+/// - `{}` gives the following "{} days {} hours {} minutes {} seconds {} milliseconds". with all fields accounted for even if they are 0.
+/// - `{:#}` simplifies the wording to 1-4 characters (d/h/mins/secs/ms) and only shows the field if the value is > 0.
 #[derive(Debug)]
 pub struct DurationInput {
     days_input: Entity<InputState>,
@@ -35,13 +70,26 @@ pub struct DurationInput {
 }
 impl EventEmitter<InputEvent> for DurationInput {}
 impl DurationInput {
+    /// Create a new entity for the input
+    ///
+    /// To gain access to `Self` then do
+    /// ```rs
+    /// let duration_input = DurationInput::view(window, cx);
+    /// duration_input.as_mut(cx) // pretty much of type &mut DurationInput
+    /// duration_input.read(cx) // Same as above, but of type &DurationInput instead
+    /// ```
     pub fn view(window: &mut Window, cx: &mut App) -> Entity<Self> {
         cx.new(|cx| Self::new(window, cx))
     }
-    pub fn to_view(self, window: &mut Window, cx: &mut App) -> Entity<Self> {
-        cx.new(|cx| self)
-    }
-    pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
+    /// Create the main struct. This is private as you're meant to use [DurationInput::view] instead.
+    ///
+    /// If you need access to `Self`, then do:
+    /// ```rs
+    /// let duration_input = DurationInput::view(window, cx);
+    /// duration_input.as_mut(cx) // pretty much of type &mut DurationInput
+    /// duration_input.read(cx) // Same as above, but of type &DurationInput instead
+    /// ```
+    fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
         let days_input = cx.new(|cx| {
             InputState::new(window, cx)
                 .default_value("0")
@@ -64,7 +112,7 @@ impl DurationInput {
         });
         let millisecond_input = cx.new(|cx| {
             InputState::new(window, cx)
-                .default_value("100")
+                .default_value("0")
                 .pattern(Regex::new(r"^[0-999]\d*$").unwrap())
         });
 
@@ -100,6 +148,7 @@ impl DurationInput {
             _subscriptions,
         }
     }
+    /// Load a value from u64.
     pub fn load_value(&mut self, mut value: u64) -> &mut Self {
         self.days_value = value / DAY_LENGTH;
         value %= DAY_LENGTH;
@@ -111,33 +160,45 @@ impl DurationInput {
         value %= SECOND_LENGTH;
         self.millisecond_value = value;
 
+        // TODO: Get this to update the UI automatically.
+
         self
     }
+    /// Return the current duration as u64.
+    ///
+    /// Calls [u64::from] under the hood.
     pub fn get_value(&self) -> u64 {
         u64::from(self)
     }
 
+    /// Is the days input field visible?
     pub fn visible_days(&mut self, visible: bool) -> &mut Self {
         self.days_visible = visible;
         self
     }
+    /// Is the hours input field visible?
     pub fn visible_hours(&mut self, visible: bool) -> &mut Self {
         self.hours_visible = visible;
         self
     }
-    pub fn visible_minutess(&mut self, visible: bool) -> &mut Self {
+    /// Is the minutes input field visible?
+    pub fn visible_minutes(&mut self, visible: bool) -> &mut Self {
         self.minutes_visible = visible;
         self
     }
-    pub fn visible_secondss(&mut self, visible: bool) -> &mut Self {
+    /// Is the seconds input field visible?
+    pub fn visible_seconds(&mut self, visible: bool) -> &mut Self {
         self.seconds_visible = visible;
         self
     }
+    /// Is the milliseconds input field visible?
     pub fn visible_milliseconds(&mut self, visible: bool) -> &mut Self {
         self.millisecond_visible = visible;
         self
     }
 
+    /// listen for input events and update the value after parsing it.
+    /// TODO: verification?
     fn on_input_event(
         &mut self,
         state: &Entity<InputState>,
@@ -166,6 +227,7 @@ impl DurationInput {
         }
     }
 
+    /// Listen for when the number changes, updates the stored value and emit a signal.
     fn on_number_input_event(
         &mut self,
         this: &Entity<InputState>,

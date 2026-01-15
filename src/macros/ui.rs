@@ -68,6 +68,7 @@ impl MacroEntryUI {
         let duration_input = DurationInput::view(window, cx);
         duration_input
             .as_mut(cx)
+            .load_value(100)
             .visible_days(false)
             .visible_hours(false);
 
