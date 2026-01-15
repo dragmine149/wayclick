@@ -1,4 +1,4 @@
-use enigo::{Button, Direction};
+use enigo::Direction;
 use std::fmt::Display;
 
 /// Controlling element for every item in a macro.
@@ -162,30 +162,30 @@ impl From<bool> for MacroType {
 impl TryFrom<&&str> for MacroType {
     type Error = String;
     fn try_from(value: &&str) -> Result<Self, Self::Error> {
-        Ok(match value {
-            &"Mouse" => Self::Mouse,
-            &"Key" => Self::Key,
+        Ok(match *value {
+            "Mouse" => Self::Mouse,
+            "Key" => Self::Key,
             _ => return Err("How??".into()),
         })
     }
 }
 
 pub fn from_direction_str(dir_str: &&str) -> Result<Direction, String> {
-    Ok(match dir_str {
-        &"Press" => Direction::Press,
-        &"Release" => Direction::Release,
-        &"Click" => Direction::Click,
+    Ok(match *dir_str {
+        "Press" => Direction::Press,
+        "Release" => Direction::Release,
+        "Click" => Direction::Click,
         _ => return Err("Invalid direction!".into()),
     })
 }
 
 pub fn from_mouse_str(dir_str: &&str) -> Result<u16, String> {
-    Ok(match dir_str {
-        &"Left" => 1,
-        &"Middle" => 2,
-        &"Right" => 3,
-        &"Fourth" => 4,
-        &"Fifth" => 5,
+    Ok(match *dir_str {
+        "Left" => 1,
+        "Middle" => 2,
+        "Right" => 3,
+        "Fourth" => 4,
+        "Fifth" => 5,
         _ => return Err("Invalid direction!".into()),
     })
 }

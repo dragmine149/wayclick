@@ -1,13 +1,12 @@
 use enigo::Direction;
 use gpui::{
-    App, AppContext, Context, Corner, Entity, InteractiveElement, IntoElement, Keystroke,
-    KeystrokeEvent, ParentElement, Render, Styled, Subscription, Window, div,
+    App, AppContext, Context, Entity, IntoElement, Keystroke, KeystrokeEvent, ParentElement,
+    Render, Styled, Subscription, Window, div,
 };
-use gpui_component::button::DropdownButton;
-use gpui_component::select::{SearchableVec, Select, SelectEvent, SelectState};
+use gpui_component::select::{Select, SelectState};
 use gpui_component::{IndexPath, StyledExt, gray_600};
 use gpui_component::{
-    button::{Button, Toggle},
+    button::Button,
     input::{InputState, NumberInput},
 };
 use regex::Regex;
