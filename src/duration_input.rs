@@ -1,7 +1,9 @@
-use gpui::{App, AppContext, Context, Entity, ParentElement, Render, Styled, Window, div, px};
+use gpui::{
+    App, AppContext, Context, Entity, ParentElement, Render, Styled, Subscription, Window, div, px,
+};
 use gpui_component::{
     StyledExt,
-    input::{InputState, NumberInput},
+    input::{InputEvent, InputState, NumberInput, NumberInputEvent, StepAction},
 };
 use regex::Regex;
 use std::fmt::{Debug, Display};
@@ -28,6 +30,7 @@ pub struct DurationInput {
     millisecond_input: Entity<InputState>,
     pub millisecond_value: u64,
     pub millisecond_visible: bool,
+    _subscriptions: Vec<Subscription>,
 }
 impl DurationInput {
     pub fn view(window: &mut Window, cx: &mut App) -> Entity<Self> {
@@ -63,6 +66,19 @@ impl DurationInput {
                 .pattern(Regex::new(r"^[0-999]\d*$").unwrap())
         });
 
+        let _subscriptions = vec![
+            cx.subscribe_in(&days_input, window, Self::on_input_event),
+            cx.subscribe_in(&days_input, window, Self::on_number_input_event),
+            cx.subscribe_in(&hours_input, window, Self::on_input_event),
+            cx.subscribe_in(&hours_input, window, Self::on_number_input_event),
+            cx.subscribe_in(&minutes_input, window, Self::on_input_event),
+            cx.subscribe_in(&minutes_input, window, Self::on_number_input_event),
+            cx.subscribe_in(&seconds_input, window, Self::on_input_event),
+            cx.subscribe_in(&seconds_input, window, Self::on_number_input_event),
+            cx.subscribe_in(&millisecond_input, window, Self::on_input_event),
+            cx.subscribe_in(&millisecond_input, window, Self::on_number_input_event),
+        ];
+
         Self {
             days_input,
             days_value: 0,
@@ -79,6 +95,7 @@ impl DurationInput {
             millisecond_input,
             millisecond_value: 0,
             millisecond_visible: true,
+            _subscriptions,
         }
     }
     pub fn load_value(&mut self, mut value: u64) -> &mut Self {
@@ -118,6 +135,112 @@ impl DurationInput {
         self.millisecond_visible = visible;
         self
     }
+
+    fn on_input_event(
+        &mut self,
+        state: &Entity<InputState>,
+        event: &InputEvent,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        match event {
+            InputEvent::Change => {
+                let text = state.read(cx).value();
+                if let Ok(value) = text.parse::<u64>() {
+                    match state {
+                        val if val == &self.millisecond_input => {
+                            self.millisecond_value = value;
+                        }
+                        val if val == &self.seconds_input => self.seconds_value = value,
+                        val if val == &self.minutes_input => self.minutes_value = value,
+                        val if val == &self.hours_input => self.hours_value = value,
+                        val if val == &self.days_input => self.days_value = value,
+                        _ => {}
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn on_number_input_event(
+        &mut self,
+        this: &Entity<InputState>,
+        event: &NumberInputEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        match event {
+            NumberInputEvent::Step(step_action) => match step_action {
+                StepAction::Decrement => match this {
+                    val if val == &self.millisecond_input => {
+                        self.millisecond_value = self.millisecond_value.saturating_sub(1);
+                        this.update(cx, |input, cx| {
+                            input.set_value(self.millisecond_value.to_string(), window, cx);
+                        })
+                    }
+                    val if val == &self.seconds_input => {
+                        self.seconds_value = self.seconds_value.saturating_sub(1);
+                        this.update(cx, |input, cx| {
+                            input.set_value(self.seconds_value.to_string(), window, cx);
+                        })
+                    }
+                    val if val == &self.minutes_input => {
+                        self.minutes_value = self.minutes_value.saturating_sub(1);
+                        this.update(cx, |input, cx| {
+                            input.set_value(self.minutes_value.to_string(), window, cx);
+                        })
+                    }
+                    val if val == &self.hours_input => {
+                        self.hours_value = self.hours_value.saturating_sub(1);
+                        this.update(cx, |input, cx| {
+                            input.set_value(self.hours_value.to_string(), window, cx);
+                        })
+                    }
+                    val if val == &self.days_input => {
+                        self.days_value = self.days_value.saturating_sub(1);
+                        this.update(cx, |input, cx| {
+                            input.set_value(self.days_value.to_string(), window, cx);
+                        })
+                    }
+                    _ => {}
+                },
+                StepAction::Increment => match this {
+                    val if val == &self.millisecond_input => {
+                        self.millisecond_value = self.millisecond_value.saturating_add(1);
+                        this.update(cx, |input, cx| {
+                            input.set_value(self.millisecond_value.to_string(), window, cx);
+                        })
+                    }
+                    val if val == &self.seconds_input => {
+                        self.seconds_value = self.seconds_value.saturating_add(1);
+                        this.update(cx, |input, cx| {
+                            input.set_value(self.seconds_value.to_string(), window, cx);
+                        })
+                    }
+                    val if val == &self.minutes_input => {
+                        self.minutes_value = self.minutes_value.saturating_add(1);
+                        this.update(cx, |input, cx| {
+                            input.set_value(self.minutes_value.to_string(), window, cx);
+                        })
+                    }
+                    val if val == &self.hours_input => {
+                        self.hours_value = self.hours_value.saturating_add(1);
+                        this.update(cx, |input, cx| {
+                            input.set_value(self.hours_value.to_string(), window, cx);
+                        })
+                    }
+                    val if val == &self.days_input => {
+                        self.days_value = self.days_value.saturating_add(1);
+                        this.update(cx, |input, cx| {
+                            input.set_value(self.days_value.to_string(), window, cx);
+                        })
+                    }
+                    _ => {}
+                },
+            },
+        }
+    }
 }
 impl Display for DurationInput {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -134,12 +257,32 @@ impl Display for DurationInput {
         } else {
             write!(
                 f,
-                "{}d {}h {}m {}s {}ms",
-                self.days_value,
-                self.hours_value,
-                self.minutes_value,
-                self.seconds_value,
-                self.millisecond_value
+                "{}{}{}{}{}",
+                if self.days_value > 1 {
+                    format!("{} d", self.days_value)
+                } else {
+                    "".into()
+                },
+                if self.hours_value > 1 {
+                    format!("{} h", self.hours_value)
+                } else {
+                    "".into()
+                },
+                if self.minutes_value > 1 {
+                    format!("{} min", self.minutes_value)
+                } else {
+                    "".into()
+                },
+                if self.seconds_value > 1 {
+                    format!("{} s", self.seconds_value)
+                } else {
+                    "".into()
+                },
+                if self.millisecond_value > 1 {
+                    format!("{} ms", self.millisecond_value)
+                } else {
+                    "".into()
+                },
             )
         }
     }
