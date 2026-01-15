@@ -23,7 +23,7 @@ pub struct MacroEntryUI {
     key_editor: Entity<KeyEditor>,
     repeat_input: Entity<InputState>,
     direction_state: Entity<SelectState<Vec<&'static str>>>,
-    macro_type_state: Entity<SelectState<Vec<&'static str>>>,
+    macro_type_state: Entity<SelectState<Vec<MacroType>>>,
     mouse_state: Entity<SelectState<Vec<&'static str>>>,
     duration_input: Entity<DurationInput>,
     _subscriptions: Vec<Subscription>,
@@ -59,7 +59,7 @@ impl MacroEntryUI {
         });
         let macro_type_state = cx.new(|cx| {
             SelectState::new(
-                vec!["Mouse", "Key"],
+                vec![MacroType::Mouse, MacroType::Key],
                 Some(IndexPath::default()), // Select first item
                 window,
                 cx,
@@ -86,9 +86,8 @@ impl MacroEntryUI {
         );
         let macro_type_sub = cx.subscribe(
             &macro_type_state,
-            |this, entity, ev: &SelectEvent<Vec<&str>>, cx: &mut Context<'_, MacroEntryUI>| {
-                this.raw.macro_type =
-                    MacroType::try_from(entity.read(cx).selected_value().unwrap()).expect("...");
+            |this, entity, ev: &SelectEvent<Vec<MacroType>>, cx: &mut Context<'_, MacroEntryUI>| {
+                this.raw.macro_type = entity.read(cx).selected_value().unwrap().to_owned();
             },
         );
         let data_sub = cx.subscribe(
@@ -113,8 +112,13 @@ impl MacroEntryUI {
             _subscriptions,
         }
     }
-    pub fn load(&mut self, data: u64) -> Result<(), String> {
+    pub fn load(&mut self, data: u64, window: &mut Window, cx: &mut App) -> Result<(), String> {
         self.raw = RawMacroEntry::try_from(data)?;
+
+        // self.direction_state
+        //     .read(cx)
+        //     .set_selected_index(selected_index, window, cx);
+
         Ok(())
     }
     pub fn save(&self) -> u64 {

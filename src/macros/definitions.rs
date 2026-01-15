@@ -1,4 +1,5 @@
 use enigo::Direction;
+use gpui_component::select::SelectItem;
 use std::fmt::Display;
 
 /// Controlling element for every item in a macro.
@@ -169,14 +170,19 @@ impl TryFrom<&&str> for MacroType {
         })
     }
 }
+impl SelectItem for MacroType {
+    type Value = Self;
 
-pub fn from_direction_str(dir_str: &&str) -> Result<Direction, String> {
-    Ok(match *dir_str {
-        "Press" => Direction::Press,
-        "Release" => Direction::Release,
-        "Click" => Direction::Click,
-        _ => return Err("Invalid direction!".into()),
-    })
+    fn title(&self) -> gpui::SharedString {
+        match self {
+            MacroType::Mouse => "Mouse".into(),
+            MacroType::Key => "Key".into(),
+        }
+    }
+
+    fn value(&self) -> &Self::Value {
+        self
+    }
 }
 
 pub fn from_mouse_str(dir_str: &&str) -> Result<u16, String> {
