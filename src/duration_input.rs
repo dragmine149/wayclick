@@ -170,75 +170,46 @@ impl DurationInput {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        match event {
-            NumberInputEvent::Step(step_action) => match step_action {
-                StepAction::Decrement => match this {
-                    val if val == &self.millisecond_input => {
-                        self.millisecond_value = self.millisecond_value.saturating_sub(1);
-                        this.update(cx, |input, cx| {
-                            input.set_value(self.millisecond_value.to_string(), window, cx);
-                        })
-                    }
-                    val if val == &self.seconds_input => {
-                        self.seconds_value = self.seconds_value.saturating_sub(1);
-                        this.update(cx, |input, cx| {
-                            input.set_value(self.seconds_value.to_string(), window, cx);
-                        })
-                    }
-                    val if val == &self.minutes_input => {
-                        self.minutes_value = self.minutes_value.saturating_sub(1);
-                        this.update(cx, |input, cx| {
-                            input.set_value(self.minutes_value.to_string(), window, cx);
-                        })
-                    }
-                    val if val == &self.hours_input => {
-                        self.hours_value = self.hours_value.saturating_sub(1);
-                        this.update(cx, |input, cx| {
-                            input.set_value(self.hours_value.to_string(), window, cx);
-                        })
-                    }
-                    val if val == &self.days_input => {
-                        self.days_value = self.days_value.saturating_sub(1);
-                        this.update(cx, |input, cx| {
-                            input.set_value(self.days_value.to_string(), window, cx);
-                        })
-                    }
-                    _ => {}
-                },
-                StepAction::Increment => match this {
-                    val if val == &self.millisecond_input => {
-                        self.millisecond_value = self.millisecond_value.saturating_add(1);
-                        this.update(cx, |input, cx| {
-                            input.set_value(self.millisecond_value.to_string(), window, cx);
-                        })
-                    }
-                    val if val == &self.seconds_input => {
-                        self.seconds_value = self.seconds_value.saturating_add(1);
-                        this.update(cx, |input, cx| {
-                            input.set_value(self.seconds_value.to_string(), window, cx);
-                        })
-                    }
-                    val if val == &self.minutes_input => {
-                        self.minutes_value = self.minutes_value.saturating_add(1);
-                        this.update(cx, |input, cx| {
-                            input.set_value(self.minutes_value.to_string(), window, cx);
-                        })
-                    }
-                    val if val == &self.hours_input => {
-                        self.hours_value = self.hours_value.saturating_add(1);
-                        this.update(cx, |input, cx| {
-                            input.set_value(self.hours_value.to_string(), window, cx);
-                        })
-                    }
-                    val if val == &self.days_input => {
-                        self.days_value = self.days_value.saturating_add(1);
-                        this.update(cx, |input, cx| {
-                            input.set_value(self.days_value.to_string(), window, cx);
-                        })
-                    }
-                    _ => {}
-                },
-            },
+        let multi = match event {
+            NumberInputEvent::Step(StepAction::Increment) => 1,
+            NumberInputEvent::Step(StepAction::Decrement) => -1,
+        };
+
+        match this {
+            val if val == &self.millisecond_input => {
+                self.millisecond_value = self
+                    .millisecond_value
+                    .saturating_add_signed(multi)
+                    .clamp(0, 999);
+                this.update(cx, |input, cx| {
+                    input.set_value(self.millisecond_value.to_string(), window, cx);
+                })
+            }
+            val if val == &self.seconds_input => {
+                self.seconds_value = self.seconds_value.saturating_add_signed(multi).clamp(0, 59);
+                this.update(cx, |input, cx| {
+                    input.set_value(self.seconds_value.to_string(), window, cx);
+                })
+            }
+            val if val == &self.minutes_input => {
+                self.minutes_value = self.minutes_value.saturating_add_signed(multi).clamp(0, 59);
+                this.update(cx, |input, cx| {
+                    input.set_value(self.minutes_value.to_string(), window, cx);
+                })
+            }
+            val if val == &self.hours_input => {
+                self.hours_value = self.hours_value.saturating_add_signed(multi).clamp(0, 24);
+                this.update(cx, |input, cx| {
+                    input.set_value(self.hours_value.to_string(), window, cx);
+                })
+            }
+            val if val == &self.days_input => {
+                self.days_value = self.days_value.saturating_add_signed(multi).clamp(0, 31);
+                this.update(cx, |input, cx| {
+                    input.set_value(self.days_value.to_string(), window, cx);
+                })
+            }
+            _ => {}
         }
     }
 }
