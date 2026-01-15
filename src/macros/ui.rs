@@ -1,28 +1,31 @@
+use crate::{
+    duration_input::DurationInput,
+    macros::definitions::{MacroType, RawMacroEntry, from_direction_str, from_mouse_str},
+};
 use enigo::Direction;
 use gpui::{
     App, AppContext, Context, Entity, IntoElement, Keystroke, KeystrokeEvent, ParentElement,
     Render, Styled, Subscription, Window, div,
 };
-use gpui_component::select::{Select, SelectState};
-use gpui_component::{IndexPath, StyledExt, gray_600};
 use gpui_component::{
+    IndexPath, StyledExt,
     button::Button,
+    gray_600,
     input::{InputState, NumberInput},
+    select::{Select, SelectState},
 };
 use regex::Regex;
-
-use crate::macros::definitions::{MacroType, RawMacroEntry, from_direction_str, from_mouse_str};
 
 pub struct MacroEntryUI {
     raw: RawMacroEntry,
     editing: bool,
 
     key_editor: Entity<KeyEditor>,
-    for_input: Entity<InputState>,
     repeat_input: Entity<InputState>,
     direction_state: Entity<SelectState<Vec<&'static str>>>,
     macro_type_state: Entity<SelectState<Vec<&'static str>>>,
     mouse_state: Entity<SelectState<Vec<&'static str>>>,
+    duration_input: Entity<DurationInput>,
 }
 impl MacroEntryUI {
     pub fn view(window: &mut Window, cx: &mut App) -> Entity<Self> {
@@ -30,13 +33,6 @@ impl MacroEntryUI {
     }
     fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
         let key_editor = KeyEditor::view(window, cx);
-        let for_input = cx.new(
-            |cx| {
-                InputState::new(window, cx)
-                    .placeholder("Integer value")
-                    .pattern(Regex::new(r"^\d+$").unwrap())
-            }, // Only positive integers
-        );
         let repeat_input = cx.new(
             |cx| {
                 InputState::new(window, cx)
@@ -68,16 +64,21 @@ impl MacroEntryUI {
                 cx,
             )
         });
+        let duration_input = DurationInput::view(window, cx);
+        duration_input
+            .as_mut(cx)
+            .visible_days(false)
+            .visible_hours(false);
 
         Self {
             raw: RawMacroEntry::default(),
             editing: false,
             key_editor,
-            for_input,
             repeat_input,
             direction_state,
             macro_type_state,
             mouse_state,
+            duration_input,
         }
     }
     pub fn load(&mut self, data: u64) -> Result<(), String> {
@@ -119,7 +120,7 @@ impl Render for MacroEntryUI {
                 } else {
                     vec!["For"]
                 })
-                .child(NumberInput::new(&self.for_input).suffix("ms"))
+                .child(self.duration_input.clone())
                 .child("Repeat")
                 .child(NumberInput::new(&self.repeat_input).suffix(" times"))
         } else {

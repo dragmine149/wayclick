@@ -1,4 +1,5 @@
 mod cli;
+mod duration_input;
 mod macros;
 mod storage;
 mod ui;
