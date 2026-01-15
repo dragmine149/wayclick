@@ -12,7 +12,7 @@ use gpui_component::{
     button::Button,
     gray_600,
     input::{InputEvent, InputState, NumberInput},
-    select::{Select, SelectState},
+    select::{SearchableVec, Select, SelectEvent, SelectState},
 };
 use regex::Regex;
 
@@ -77,7 +77,29 @@ impl MacroEntryUI {
             println!("{:?}", this.raw);
         });
 
-        let _subscriptions = vec![duration_sub];
+        let direction_sub = cx.subscribe(
+            &direction_state,
+            |this, entity, ev: &SelectEvent<Vec<&str>>, cx: &mut Context<'_, MacroEntryUI>| {
+                this.raw.direction = from_direction_str(entity.read(cx).selected_value().unwrap())
+                    .expect("Now how to deal with this...");
+            },
+        );
+        let macro_type_sub = cx.subscribe(
+            &macro_type_state,
+            |this, entity, ev: &SelectEvent<Vec<&str>>, cx: &mut Context<'_, MacroEntryUI>| {
+                this.raw.macro_type =
+                    MacroType::try_from(entity.read(cx).selected_value().unwrap()).expect("...");
+            },
+        );
+        let data_sub = cx.subscribe(
+            &mouse_state,
+            |this, entity, ev: &SelectEvent<Vec<&str>>, cx: &mut Context<'_, MacroEntryUI>| {
+                this.raw.data = from_mouse_str(entity.read(cx).selected_value().unwrap())
+                    .expect("Failed translate")
+            },
+        );
+
+        let _subscriptions = vec![duration_sub, direction_sub, macro_type_sub, data_sub];
 
         Self {
             raw: RawMacroEntry::default(),
@@ -101,19 +123,6 @@ impl MacroEntryUI {
 }
 impl Render for MacroEntryUI {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        // TODO: Improve this so we can use a subscription based system instead.
-        self.raw.direction =
-            from_direction_str(self.direction_state.read(cx).selected_value().unwrap())
-                .expect("Now how to deal with this...");
-        self.raw.macro_type =
-            MacroType::try_from(self.macro_type_state.read(cx).selected_value().unwrap())
-                .expect("...");
-        self.raw.data = match self.raw.macro_type {
-            MacroType::Mouse => from_mouse_str(self.mouse_state.read(cx).selected_value().unwrap())
-                .expect("Failed translate"),
-            MacroType::Key => self.key_editor.read(cx).as_code(),
-        };
-
         if self.editing {
             div()
                 .h_flex()
@@ -125,10 +134,10 @@ impl Render for MacroEntryUI {
                     MacroType::Mouse => div().child(Select::new(&self.mouse_state)),
                     MacroType::Key => div().child(self.key_editor.clone()),
                 })
-                .children(if self.raw.direction == Direction::Click {
-                    vec!["Every"]
+                .child(if self.raw.direction == Direction::Click {
+                    "Every"
                 } else {
-                    vec!["For"]
+                    "For"
                 })
                 .child(self.duration_input.clone())
                 .child("Repeat")
