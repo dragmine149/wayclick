@@ -1,5 +1,6 @@
 use gpui::{
-    App, AppContext, Context, Entity, ParentElement, Render, Styled, Subscription, Window, div, px,
+    App, AppContext, Context, Entity, EventEmitter, ParentElement, Render, Styled, Subscription,
+    Window, div, px,
 };
 use gpui_component::{
     StyledExt,
@@ -32,6 +33,7 @@ pub struct DurationInput {
     pub millisecond_visible: bool,
     _subscriptions: Vec<Subscription>,
 }
+impl EventEmitter<InputEvent> for DurationInput {}
 impl DurationInput {
     pub fn view(window: &mut Window, cx: &mut App) -> Entity<Self> {
         cx.new(|cx| Self::new(window, cx))
@@ -158,6 +160,7 @@ impl DurationInput {
                         _ => {}
                     }
                 }
+                cx.emit(InputEvent::Change);
             }
             _ => {}
         }

@@ -11,7 +11,7 @@ use gpui_component::{
     IndexPath, StyledExt,
     button::Button,
     gray_600,
-    input::{InputState, NumberInput},
+    input::{InputEvent, InputState, NumberInput},
     select::{Select, SelectState},
 };
 use regex::Regex;
@@ -26,6 +26,7 @@ pub struct MacroEntryUI {
     macro_type_state: Entity<SelectState<Vec<&'static str>>>,
     mouse_state: Entity<SelectState<Vec<&'static str>>>,
     duration_input: Entity<DurationInput>,
+    _subscriptions: Vec<Subscription>,
 }
 impl MacroEntryUI {
     pub fn view(window: &mut Window, cx: &mut App) -> Entity<Self> {
@@ -70,6 +71,13 @@ impl MacroEntryUI {
             .visible_days(false)
             .visible_hours(false);
 
+        let duration_sub = cx.subscribe(&duration_input, |this, duration, ev: &InputEvent, cx| {
+            this.raw.length = u64::from(duration.read(cx)) as u32;
+            println!("{:?}", this.raw);
+        });
+
+        let _subscriptions = vec![duration_sub];
+
         Self {
             raw: RawMacroEntry::default(),
             editing: false,
@@ -79,6 +87,7 @@ impl MacroEntryUI {
             macro_type_state,
             mouse_state,
             duration_input,
+            _subscriptions,
         }
     }
     pub fn load(&mut self, data: u64) -> Result<(), String> {

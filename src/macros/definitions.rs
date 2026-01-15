@@ -10,7 +10,7 @@ use std::fmt::Display;
 /// 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
 /// press/releaase/click (2), mouse/key (1), data(13), length (27), repeat (21)
 /// ```
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone, Copy, Debug)]
 pub struct RawMacroEntry {
     /// The direction of a key or button
     pub direction: Direction,
@@ -130,7 +130,7 @@ impl From<RawMacroEntry> for u64 {
 }
 
 /// This defines the data stored in RawMacroEntry
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone, Copy, Debug)]
 pub enum MacroType {
     /// This is a mouse action
     Mouse,
