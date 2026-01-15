@@ -12,7 +12,7 @@ use gpui_component::{
     button::Button,
     gray_600,
     input::{InputEvent, InputState, NumberInput},
-    select::{SearchableVec, Select, SelectEvent, SelectState},
+    select::{Select, SelectEvent, SelectState},
 };
 use regex::Regex;
 
