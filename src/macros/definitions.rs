@@ -1,4 +1,4 @@
-use enigo::Direction;
+use enigo::{Button, Direction};
 use gpui_component::{IndexPath, select::SelectItem};
 use std::fmt::Display;
 
@@ -21,7 +21,7 @@ pub trait ToVec {
 /// 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
 /// press/releaase/click (2), mouse/key (1), data(13), length (27), repeat (21)
 /// ```
-#[derive(Default, Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct RawMacroEntry {
     /// The direction of a key or button
     pub direction: Direction,
@@ -34,7 +34,6 @@ pub struct RawMacroEntry {
     /// How many times can we repeat said input.
     pub repeat: u32,
 }
-
 impl Display for RawMacroEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -57,7 +56,11 @@ impl Display for RawMacroEntry {
                 "for"
             },
             self.length,
-            self.repeat,
+            if self.repeat == 0 {
+                "Infinite".into()
+            } else {
+                self.repeat.to_string()
+            },
         )
     }
 }
@@ -136,14 +139,25 @@ impl From<RawMacroEntry> for u64 {
         u64::from(&value)
     }
 }
+impl Default for RawMacroEntry {
+    fn default() -> Self {
+        Self {
+            direction: Direction::Click,
+            macro_type: MacroType::Mouse,
+            data: 1,
+            length: 100,
+            repeat: 0,
+        }
+    }
+}
 
 /// This defines the data stored in RawMacroEntry
-#[derive(Default, Clone, Copy, Debug)]
+#[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MacroType {
     /// This is a mouse action
+    #[default]
     Mouse,
     /// This is a keyboard action
-    #[default]
     Key,
 }
 impl Display for MacroType {
@@ -196,9 +210,11 @@ impl ToVec for MacroType {
         vec![Self::Mouse, Self::Key]
     }
     fn default_index() -> Option<IndexPath> {
-        Some(IndexPath::new(1))
+        Some(IndexPath::new(0))
     }
 }
+
+/// A wrapper for [enigo::Direction] so that we can use it w/gpui.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SelectDirection {
     Press,
@@ -229,6 +245,11 @@ impl From<&SelectDirection> for Direction {
         }
     }
 }
+impl From<SelectDirection> for Direction {
+    fn from(value: SelectDirection) -> Self {
+        Self::from(&value)
+    }
+}
 impl From<&Direction> for SelectDirection {
     fn from(value: &Direction) -> Self {
         match value {
@@ -252,8 +273,12 @@ impl ToVec for SelectDirection {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+/// Wrapper for [enigo::Button] for use w/ gpui.
+///
+/// Note, this contains slightly less options than enigo to not confuse the end user.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SelectMouseAction {
+    #[default]
     /// left mouse button
     Left,
     /// middle mouse button
@@ -296,7 +321,7 @@ impl ToVec for SelectMouseAction {
         ]
     }
     fn default_index() -> Option<IndexPath> {
-        Some(IndexPath::new(4))
+        Some(IndexPath::new(0))
     }
 }
 impl From<u64> for SelectMouseAction {
@@ -312,7 +337,7 @@ impl From<&u64> for SelectMouseAction {
             3 => Self::Right,
             4 => Self::Fourth,
             5 => Self::Fifth,
-            _ => panic!("Invalid mouse button value"),
+            _ => panic!("Invalid mouse button value {}", value),
         }
     }
 }
@@ -341,5 +366,45 @@ impl Display for SelectMouseAction {
             SelectMouseAction::Fourth => write!(f, "Fourth"),
             SelectMouseAction::Fifth => write!(f, "Fifth"),
         }
+    }
+}
+impl TryFrom<&Button> for SelectMouseAction {
+    type Error = String;
+
+    fn try_from(value: &Button) -> Result<Self, Self::Error> {
+        match value {
+            Button::Left => Ok(Self::Left),
+            Button::Middle => Ok(Self::Middle),
+            Button::Right => Ok(Self::Right),
+            Button::Back => Ok(Self::Fourth),
+            Button::Forward => Ok(Self::Fifth),
+            Button::ScrollUp => Err("Scroll up button is not supported".to_string()),
+            Button::ScrollDown => Err("Scroll down button is not supported".to_string()),
+            Button::ScrollLeft => Err("Scroll left button is not supported".to_string()),
+            Button::ScrollRight => Err("Scroll right button is not supported".to_string()),
+        }
+    }
+}
+impl TryFrom<Button> for SelectMouseAction {
+    type Error = String;
+
+    fn try_from(value: Button) -> Result<Self, Self::Error> {
+        Self::try_from(&value)
+    }
+}
+impl From<&SelectMouseAction> for Button {
+    fn from(value: &SelectMouseAction) -> Self {
+        match value {
+            SelectMouseAction::Left => Button::Left,
+            SelectMouseAction::Middle => Button::Middle,
+            SelectMouseAction::Right => Button::Right,
+            SelectMouseAction::Fourth => Button::Back,
+            SelectMouseAction::Fifth => Button::Forward,
+        }
+    }
+}
+impl From<SelectMouseAction> for Button {
+    fn from(value: SelectMouseAction) -> Self {
+        Self::from(&value)
     }
 }

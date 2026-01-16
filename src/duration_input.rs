@@ -149,6 +149,7 @@ impl DurationInput {
         }
     }
     /// Load a value from u64.
+    // pub fn load_value(&mut self, mut value: u64, window: &mut Window, cx: &mut App) -> &mut Self {
     pub fn load_value(&mut self, mut value: u64) -> &mut Self {
         self.days_value = value / DAY_LENGTH;
         value %= DAY_LENGTH;
@@ -161,6 +162,21 @@ impl DurationInput {
         self.millisecond_value = value;
 
         // TODO: Get this to update the UI automatically.
+        // cx.update_entity(&self.days_input, |entity, cx| {
+        //     entity.set_value(&self.days_value.to_string(), window, cx);
+        // });
+        // cx.update_entity(&self.hours_input, |entity, cx| {
+        //     entity.set_value(&self.hours_value.to_string(), window, cx);
+        // });
+        // cx.update_entity(&self.minutes_input, |entity, cx| {
+        //     entity.set_value(&self.minutes_value.to_string(), window, cx);
+        // });
+        // cx.update_entity(&self.seconds_input, |entity, cx| {
+        //     entity.set_value(&self.seconds_value.to_string(), window, cx);
+        // });
+        // cx.update_entity(&self.millisecond_input, |entity, cx| {
+        //     entity.set_value(&self.millisecond_value.to_string(), window, cx);
+        // });
 
         self
     }

@@ -16,9 +16,10 @@ use gpui_component::{
 };
 use regex::Regex;
 
+/// Main UI for editing a macro entry.
 pub struct MacroEntryUI {
-    raw: RawMacroEntry,
-    editing: bool,
+    pub raw: RawMacroEntry,
+    pub editing: bool,
 
     key_editor: Entity<KeyEditor>,
     repeat_input: Entity<InputState>,
@@ -33,14 +34,17 @@ impl MacroEntryUI {
         cx.new(|cx| Self::new(window, cx))
     }
     fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
+        // How does on explain this?
+        // Basically, every entity stores information about itself and data around it, the UI then references these entities.
+        // Subscriptions are used to listen to sub events and act on them.
+        // Yes, this might look like a mess but eh.
+
         let key_editor = KeyEditor::view(window, cx);
-        let repeat_input = cx.new(
-            |cx| {
-                InputState::new(window, cx)
-                    .placeholder("Integer value")
-                    .pattern(Regex::new(r"^\d+$").unwrap())
-            }, // Only positive integers
-        );
+        let repeat_input = cx.new(|cx| {
+            InputState::new(window, cx)
+                .placeholder("Integer value")
+                .pattern(Regex::new(r"^\d+$").unwrap())
+        });
         let direction_state = cx.new(|cx| {
             SelectState::new(
                 SelectDirection::to_vec(),
@@ -67,7 +71,7 @@ impl MacroEntryUI {
             .visible_days(false)
             .visible_hours(false);
 
-        let duration_sub = cx.subscribe(&duration_input, |this, duration, ev: &InputEvent, cx| {
+        let duration_sub = cx.subscribe(&duration_input, |this, duration, _: &InputEvent, cx| {
             this.raw.length = u64::from(duration.read(cx)) as u32;
             println!("{:?}", this.raw);
         });
@@ -76,14 +80,14 @@ impl MacroEntryUI {
             &direction_state,
             |this,
              entity,
-             ev: &SelectEvent<Vec<SelectDirection>>,
+             _: &SelectEvent<Vec<SelectDirection>>,
              cx: &mut Context<'_, MacroEntryUI>| {
                 this.raw.direction = Direction::from(entity.read(cx).selected_value().unwrap())
             },
         );
         let macro_type_sub = cx.subscribe(
             &macro_type_state,
-            |this, entity, ev: &SelectEvent<Vec<MacroType>>, cx: &mut Context<'_, MacroEntryUI>| {
+            |this, entity, _: &SelectEvent<Vec<MacroType>>, cx: &mut Context<'_, MacroEntryUI>| {
                 this.raw.macro_type = entity.read(cx).selected_value().unwrap().to_owned();
             },
         );
@@ -91,7 +95,7 @@ impl MacroEntryUI {
             &mouse_state,
             |this,
              entity,
-             ev: &SelectEvent<Vec<SelectMouseAction>>,
+             _: &SelectEvent<Vec<SelectMouseAction>>,
              cx: &mut Context<'_, MacroEntryUI>| {
                 this.raw.data = u64::from(entity.read(cx).selected_value().unwrap()) as u16;
             },
@@ -111,21 +115,38 @@ impl MacroEntryUI {
             _subscriptions,
         }
     }
+    /// Load data from a u64. Used as a cheap way of storing data
     pub fn load(&mut self, data: u64, window: &mut Window, cx: &mut App) -> Result<(), String> {
         self.raw = RawMacroEntry::try_from(data)?;
 
+        // cx.update_entity(&self.key_editor, |entity, cx| {
+        // entity.keystroke =
+        // });
+        cx.update_entity(&self.repeat_input, |entity, cx| {
+            entity.set_value(self.raw.repeat.to_string(), window, cx);
+        });
         cx.update_entity(&self.direction_state, |entity, cx| {
             entity.set_selected_value(&SelectDirection::from(self.raw.direction), window, cx);
+        });
+        cx.update_entity(&self.macro_type_state, |entity, cx| {
+            entity.set_selected_value(&self.raw.macro_type, window, cx);
+        });
+        cx.update_entity(&self.mouse_state, |entity, cx| {
+            entity.set_selected_value(&SelectMouseAction::from(self.raw.data as u64), window, cx);
+        });
+        cx.update_entity(&self.duration_input, |entity, cx| {
+            entity.load_value(self.raw.length as u64);
         });
 
         Ok(())
     }
+    /// Save the current data to a u64.
     pub fn save(&self) -> u64 {
         u64::from(self.raw)
     }
 }
 impl Render for MacroEntryUI {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         if self.editing {
             div()
                 .h_flex()
@@ -145,6 +166,14 @@ impl Render for MacroEntryUI {
                 .child(self.duration_input.clone())
                 .child("Repeat")
                 .child(NumberInput::new(&self.repeat_input).suffix(" times"))
+                .child(
+                    Button::new("macro-finish")
+                        .label("Submit Changes")
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            this.editing = false;
+                            cx.notify();
+                        })),
+                )
         } else {
             div().child(
                 Button::new("macro-button")
@@ -158,6 +187,9 @@ impl Render for MacroEntryUI {
     }
 }
 
+/// Custom key input.
+///
+/// TODO: Use something else other than keystroke, this doesn't read everything.
 pub struct KeyEditor {
     keystroke: Keystroke,
     key_subscription: Option<Vec<Subscription>>,
