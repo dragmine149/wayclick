@@ -96,20 +96,18 @@ impl Render for Activate {
                         .disabled(!self.is_clicking),
                 ])
                 .on_click(cx.listener(
-                    |view, clicks: &Vec<usize>, _: &mut Window, _: &mut Context<Self>| {
+                    |_, clicks: &Vec<usize>, _: &mut Window, _: &mut Context<Self>| {
                         if clicks.contains(&0) {
                             println!("Start clicking");
-                            view.is_clicking = true;
-                            // Command::new(program);
                             let myself = current_exe().unwrap();
-                            let _ = Command::new(myself)
+                            Command::new(myself)
                                 .arg("start")
                                 .stdout(Stdio::inherit())
-                                .spawn();
+                                .spawn()
+                                .unwrap();
                         }
                         if clicks.contains(&1) {
                             println!("Stop clicking");
-                            view.is_clicking = false;
                             daemon_stop();
                         }
                     },
