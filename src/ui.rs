@@ -1,8 +1,7 @@
-use std::{
-    env::current_exe,
-    process::{Command, Stdio},
+use crate::{
+    cli::{daemon_stop, pid_file_path},
+    macros::ui::MacroEntryUI,
 };
-
 use gpui::{
     App, AppContext, Context, Entity, IntoElement, ParentElement, Render, Styled, Window, div,
 };
@@ -11,18 +10,76 @@ use gpui_component::{
     button::{Button, ButtonGroup},
     label::Label,
 };
+use notify::{Event, EventKind, RecursiveMode, Result, Watcher};
+use std::{
+    env::current_exe,
+    path::PathBuf,
+    process::{Command, Stdio},
+};
 
-use crate::{cli::daemon_stop, macros::ui::MacroEntryUI};
+/// Watch a specific file for changes, then send an update.
+///
+/// # Arguments
+/// - cx: The relation to the entity.
+/// - file: The file to watch
+/// - callback: Function to call when an event has been triggered.
+///
+/// # Notes
+/// We actually watch at the parent directory and only send events it we detect a file.
+pub fn watch_fs<T: 'static>(
+    cx: &mut Context<T>,
+    file: PathBuf,
+    callback: impl Fn(&mut T, &mut Context<T>, EventKind) + 'static,
+) {
+    let (tx, rx) = smol::channel::bounded(100);
+    let mut watcher = notify::recommended_watcher(move |res: Result<Event>| {
+        if let Ok(event) = &res {
+            tx.send_blocking((event.kind, event.paths.clone()))
+                .expect("Failed to send event details");
+        }
+    })
+    .expect("Failed to initial watcher");
+
+    cx.spawn(async move |this, cx| {
+        watcher
+            .watch(&file.parent().unwrap(), RecursiveMode::NonRecursive)
+            .expect("Failed to watch file");
+
+        while let Ok((event_kind, event_paths)) = rx.recv().await {
+            // if it's not a valid path, no need to continue.
+            if !event_paths.contains(&file) {
+                continue;
+            }
+
+            this.update(cx, |this, cx| {
+                callback(this, cx, event_kind);
+            })
+            .unwrap();
+        }
+    })
+    .detach();
+}
 
 /// Struct for if the clicker is activated or not.
 pub struct Activate {
     is_clicking: bool,
 }
+
 impl Activate {
     pub fn view(window: &mut Window, cx: &mut App) -> Entity<Self> {
         cx.new(|cx| Self::new(window, cx))
     }
-    pub fn new(_: &mut Window, _: &mut Context<Self>) -> Self {
+    pub fn new(_: &mut Window, cx: &mut Context<Self>) -> Self {
+        // change if we are clicking or not based on the pid file.
+        watch_fs(cx, pid_file_path(), |this, cx, kind| {
+            match kind {
+                EventKind::Create(_) => this.is_clicking = true,
+                EventKind::Remove(_) => this.is_clicking = false,
+                _ => {}
+            };
+            cx.notify();
+        });
+
         Self { is_clicking: false }
     }
 }

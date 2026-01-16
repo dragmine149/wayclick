@@ -48,7 +48,9 @@ pub enum Subcommands {
 }
 
 /// Get the file path where we store the pid.
-fn pid_file_path() -> PathBuf {
+///
+/// Yes this supports multiple systems, do i care that much? nah.
+pub fn pid_file_path() -> PathBuf {
     dirs::runtime_dir()
         .or_else(dirs::cache_dir)
         .expect("Can't find a place to write lock file")
