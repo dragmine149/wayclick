@@ -1,6 +1,16 @@
 use enigo::Direction;
-use gpui_component::select::SelectItem;
+use gpui_component::{IndexPath, select::SelectItem};
 use std::fmt::Display;
+
+/// enum specific functions to help with [gpui_components::select]
+pub trait ToVec {
+    /// Convert this object into a vector.
+    fn to_vec() -> Vec<Self>
+    where
+        Self: Sized;
+    /// The default index of the enum to use when nothing is supplied.
+    fn default_index() -> Option<IndexPath>;
+}
 
 /// Controlling element for every item in a macro.
 ///
@@ -36,13 +46,11 @@ impl Display for RawMacroEntry {
                 Direction::Click => "Click",
             },
             self.macro_type,
-            self.data,
-            // match self.macro_type {
-            //     MacroType::Mouse => MouseAction::try_from(self.data)
-            //         .expect("How to deal with this...")
-            //         .to_string(),
-            //     MacroType::Key => format!("{}", self.data),
-            // },
+            // self.data,
+            match self.macro_type {
+                MacroType::Mouse => SelectMouseAction::from(self.data as u64).to_string(),
+                MacroType::Key => format!("{}", self.data),
+            },
             if self.direction == Direction::Click {
                 "every"
             } else {
@@ -53,7 +61,6 @@ impl Display for RawMacroEntry {
         )
     }
 }
-
 impl TryFrom<u64> for RawMacroEntry {
     type Error = String;
 
@@ -184,14 +191,155 @@ impl SelectItem for MacroType {
         self
     }
 }
+impl ToVec for MacroType {
+    fn to_vec() -> Vec<Self> {
+        vec![Self::Mouse, Self::Key]
+    }
+    fn default_index() -> Option<IndexPath> {
+        Some(IndexPath::new(1))
+    }
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SelectDirection {
+    Press,
+    Release,
+    Click,
+}
+impl SelectItem for SelectDirection {
+    type Value = Self;
 
-pub fn from_mouse_str(dir_str: &&str) -> Result<u16, String> {
-    Ok(match *dir_str {
-        "Left" => 1,
-        "Middle" => 2,
-        "Right" => 3,
-        "Fourth" => 4,
-        "Fifth" => 5,
-        _ => return Err("Invalid direction!".into()),
-    })
+    fn title(&self) -> gpui::SharedString {
+        match self {
+            SelectDirection::Press => "Press".into(),
+            SelectDirection::Release => "Release".into(),
+            SelectDirection::Click => "Click".into(),
+        }
+    }
+
+    fn value(&self) -> &Self::Value {
+        self
+    }
+}
+impl From<&SelectDirection> for Direction {
+    fn from(value: &SelectDirection) -> Self {
+        match value {
+            SelectDirection::Press => Self::Press,
+            SelectDirection::Release => Self::Release,
+            SelectDirection::Click => Self::Release,
+        }
+    }
+}
+impl From<&Direction> for SelectDirection {
+    fn from(value: &Direction) -> Self {
+        match value {
+            Direction::Press => SelectDirection::Press,
+            Direction::Release => SelectDirection::Release,
+            Direction::Click => SelectDirection::Click,
+        }
+    }
+}
+impl From<Direction> for SelectDirection {
+    fn from(value: Direction) -> Self {
+        Self::from(&value)
+    }
+}
+impl ToVec for SelectDirection {
+    fn to_vec() -> Vec<Self> {
+        vec![Self::Press, Self::Release, Self::Click]
+    }
+    fn default_index() -> Option<IndexPath> {
+        Some(IndexPath::new(2))
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum SelectMouseAction {
+    /// left mouse button
+    Left,
+    /// middle mouse button
+    Middle,
+    /// right mouse button
+    Right,
+    /// fourth mouse button, aka backward
+    Fourth,
+    /// fifth mouse button, aka forward.
+    Fifth,
+}
+impl SelectItem for SelectMouseAction {
+    type Value = Self;
+
+    fn title(&self) -> gpui::SharedString {
+        match self {
+            SelectMouseAction::Left => "Left".into(),
+            SelectMouseAction::Middle => "Middle".into(),
+            SelectMouseAction::Right => "Right".into(),
+            SelectMouseAction::Fourth => "Fourth".into(),
+            SelectMouseAction::Fifth => "Fifth".into(),
+        }
+    }
+
+    fn value(&self) -> &Self::Value {
+        self
+    }
+}
+impl ToVec for SelectMouseAction {
+    fn to_vec() -> Vec<Self>
+    where
+        Self: Sized,
+    {
+        vec![
+            Self::Left,
+            Self::Middle,
+            Self::Right,
+            Self::Fourth,
+            Self::Fifth,
+        ]
+    }
+    fn default_index() -> Option<IndexPath> {
+        Some(IndexPath::new(4))
+    }
+}
+impl From<u64> for SelectMouseAction {
+    fn from(value: u64) -> Self {
+        Self::from(&value)
+    }
+}
+impl From<&u64> for SelectMouseAction {
+    fn from(value: &u64) -> Self {
+        match value {
+            1 => Self::Left,
+            2 => Self::Middle,
+            3 => Self::Right,
+            4 => Self::Fourth,
+            5 => Self::Fifth,
+            _ => panic!("Invalid mouse button value"),
+        }
+    }
+}
+impl From<SelectMouseAction> for u64 {
+    fn from(value: SelectMouseAction) -> Self {
+        Self::from(&value)
+    }
+}
+impl From<&SelectMouseAction> for u64 {
+    fn from(value: &SelectMouseAction) -> Self {
+        match value {
+            SelectMouseAction::Left => 1,
+            SelectMouseAction::Middle => 2,
+            SelectMouseAction::Right => 3,
+            SelectMouseAction::Fourth => 4,
+            SelectMouseAction::Fifth => 5,
+        }
+    }
+}
+impl Display for SelectMouseAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SelectMouseAction::Left => write!(f, "Left"),
+            SelectMouseAction::Middle => write!(f, "Middle"),
+            SelectMouseAction::Right => write!(f, "Right"),
+            SelectMouseAction::Fourth => write!(f, "Fourth"),
+            SelectMouseAction::Fifth => write!(f, "Fifth"),
+        }
+    }
 }

@@ -1,6 +1,6 @@
 use crate::{
     duration_input::DurationInput,
-    macros::definitions::{MacroType, RawMacroEntry, from_direction_str, from_mouse_str},
+    macros::definitions::{MacroType, RawMacroEntry, SelectDirection, SelectMouseAction, ToVec},
 };
 use enigo::Direction;
 use gpui::{
@@ -8,7 +8,7 @@ use gpui::{
     Render, Styled, Subscription, Window, div,
 };
 use gpui_component::{
-    IndexPath, StyledExt,
+    StyledExt,
     button::Button,
     gray_600,
     input::{InputEvent, InputState, NumberInput},
@@ -22,9 +22,9 @@ pub struct MacroEntryUI {
 
     key_editor: Entity<KeyEditor>,
     repeat_input: Entity<InputState>,
-    direction_state: Entity<SelectState<Vec<&'static str>>>,
+    direction_state: Entity<SelectState<Vec<SelectDirection>>>,
     macro_type_state: Entity<SelectState<Vec<MacroType>>>,
-    mouse_state: Entity<SelectState<Vec<&'static str>>>,
+    mouse_state: Entity<SelectState<Vec<SelectMouseAction>>>,
     duration_input: Entity<DurationInput>,
     _subscriptions: Vec<Subscription>,
 }
@@ -43,27 +43,22 @@ impl MacroEntryUI {
         );
         let direction_state = cx.new(|cx| {
             SelectState::new(
-                vec!["Press", "Release", "Click"],
-                Some(IndexPath::default()), // Select first item
+                SelectDirection::to_vec(),
+                SelectDirection::default_index(),
                 window,
                 cx,
             )
         });
         let mouse_state = cx.new(|cx| {
             SelectState::new(
-                vec!["Left", "Middle", "Right", "Fourth", "Fifth"],
-                Some(IndexPath::default()), // Select first item
+                SelectMouseAction::to_vec(),
+                SelectMouseAction::default_index(),
                 window,
                 cx,
             )
         });
         let macro_type_state = cx.new(|cx| {
-            SelectState::new(
-                vec![MacroType::Mouse, MacroType::Key],
-                Some(IndexPath::default()), // Select first item
-                window,
-                cx,
-            )
+            SelectState::new(MacroType::to_vec(), MacroType::default_index(), window, cx)
         });
         let duration_input = DurationInput::view(window, cx);
         duration_input
@@ -79,9 +74,11 @@ impl MacroEntryUI {
 
         let direction_sub = cx.subscribe(
             &direction_state,
-            |this, entity, ev: &SelectEvent<Vec<&str>>, cx: &mut Context<'_, MacroEntryUI>| {
-                this.raw.direction = from_direction_str(entity.read(cx).selected_value().unwrap())
-                    .expect("Now how to deal with this...");
+            |this,
+             entity,
+             ev: &SelectEvent<Vec<SelectDirection>>,
+             cx: &mut Context<'_, MacroEntryUI>| {
+                this.raw.direction = Direction::from(entity.read(cx).selected_value().unwrap())
             },
         );
         let macro_type_sub = cx.subscribe(
@@ -92,9 +89,11 @@ impl MacroEntryUI {
         );
         let data_sub = cx.subscribe(
             &mouse_state,
-            |this, entity, ev: &SelectEvent<Vec<&str>>, cx: &mut Context<'_, MacroEntryUI>| {
-                this.raw.data = from_mouse_str(entity.read(cx).selected_value().unwrap())
-                    .expect("Failed translate")
+            |this,
+             entity,
+             ev: &SelectEvent<Vec<SelectMouseAction>>,
+             cx: &mut Context<'_, MacroEntryUI>| {
+                this.raw.data = u64::from(entity.read(cx).selected_value().unwrap()) as u16;
             },
         );
 
@@ -115,9 +114,9 @@ impl MacroEntryUI {
     pub fn load(&mut self, data: u64, window: &mut Window, cx: &mut App) -> Result<(), String> {
         self.raw = RawMacroEntry::try_from(data)?;
 
-        // self.direction_state
-        //     .read(cx)
-        //     .set_selected_index(selected_index, window, cx);
+        cx.update_entity(&self.direction_state, |entity, cx| {
+            entity.set_selected_value(&SelectDirection::from(self.raw.direction), window, cx);
+        });
 
         Ok(())
     }
