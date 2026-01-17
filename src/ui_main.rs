@@ -2,7 +2,10 @@ use crate::{
     storage::{Settings, theme_dir},
     ui::ClickUI,
 };
-use gpui::{AppContext, Application, SharedString, TitlebarOptions, WindowOptions};
+use gpui::{
+    AppContext, Application, Bounds, SharedString, TitlebarOptions, WindowBounds, WindowOptions,
+    px, size,
+};
 use gpui_component::{Root, Theme, ThemeRegistry, TitleBar};
 use gpui_component_assets::Assets;
 
@@ -26,9 +29,11 @@ pub fn ui_main() {
             eprintln!("Failed to watch themes directory: {}", err);
         }
 
+        let bounds = Bounds::centered(None, size(px(500.), px(500.)), cx);
         // actually open gpui.
         cx.spawn(async move |cx| {
             let options = WindowOptions {
+                window_bounds: Some(WindowBounds::Windowed(bounds)),
                 titlebar: Some(TitlebarOptions {
                     title: Some("WayClicker".into()),
                     ..Default::default()

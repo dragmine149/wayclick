@@ -1,21 +1,16 @@
 use crate::{
-    cli::{daemon_stop, pid_file_path},
+    cli::{daemon_stop, pid_file_path, start_subprocess},
     macros::ui::MacroEntryUI,
 };
 use gpui::{
-    App, AppContext, Context, Entity, IntoElement, ParentElement, Render, Styled, Window, div,
+    App, AppContext, Context, Entity, IntoElement, ParentElement, Render, Styled, Window, div, px,
 };
 use gpui_component::{
     Disableable, DivInspector, StyledExt,
     button::{Button, ButtonGroup},
-    label::Label,
 };
 use notify::{Event, EventKind, RecursiveMode, Result, Watcher};
-use std::{
-    env::current_exe,
-    path::PathBuf,
-    process::{Command, Stdio},
-};
+use std::path::PathBuf;
 
 /// Watch a specific file for changes, then send an update.
 ///
@@ -85,34 +80,36 @@ impl Activate {
 }
 impl Render for Activate {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        div().size_full().child(
-            ButtonGroup::new("activation-group")
-                .children(vec![
-                    Button::new("activate")
-                        .label("Start Autoclicking")
-                        .disabled(self.is_clicking),
-                    Button::new("deactivate")
-                        .label("Stop Autoclicking")
-                        .disabled(!self.is_clicking),
-                ])
-                .on_click(cx.listener(
-                    |_, clicks: &Vec<usize>, _: &mut Window, _: &mut Context<Self>| {
-                        if clicks.contains(&0) {
-                            println!("Start clicking");
-                            let myself = current_exe().unwrap();
-                            Command::new(myself)
-                                .arg("start")
-                                .stdout(Stdio::inherit())
-                                .spawn()
-                                .unwrap();
-                        }
-                        if clicks.contains(&1) {
-                            println!("Stop clicking");
-                            daemon_stop();
-                        }
-                    },
-                )),
-        )
+        div()
+            .p_2()
+            .w_full()
+            .h_flex()
+            .items_center()
+            .justify_center()
+            .child(
+                ButtonGroup::new("activation-group")
+                    .children(vec![
+                        Button::new("activate")
+                            .label("Start Macro")
+                            .disabled(self.is_clicking),
+                        Button::new("deactivate")
+                            .label("Stop Macro")
+                            .disabled(!self.is_clicking),
+                    ])
+                    .gap_2()
+                    .on_click(cx.listener(
+                        |_, clicks: &Vec<usize>, _: &mut Window, _: &mut Context<Self>| {
+                            if clicks.contains(&0) {
+                                println!("Start clicking");
+                                start_subprocess();
+                            }
+                            if clicks.contains(&1) {
+                                println!("Stop clicking");
+                                daemon_stop();
+                            }
+                        },
+                    )),
+            )
     }
 }
 
@@ -150,8 +147,9 @@ impl Render for ClickUI {
             .v_flex()
             .items_center()
             .justify_center()
+            .size_full()
             .child(self.inspector.clone())
-            .child(self.activate.clone())
             .child(self.macros.clone())
+            .child(self.activate.clone())
     }
 }

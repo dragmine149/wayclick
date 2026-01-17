@@ -7,11 +7,12 @@ use nix::{
 };
 use notify_rust::Notification;
 use std::{
+    env::current_exe,
     fs::{File, OpenOptions},
     io::{Read, Write},
     os::unix::fs::OpenOptionsExt,
     path::PathBuf,
-    process,
+    process::{self, Command, Stdio},
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -170,4 +171,13 @@ pub fn toggle_daemon() {
         Some(_) => daemon_stop(),
         None => daemon_start(),
     }
+}
+
+pub fn start_subprocess() {
+    let myself = current_exe().unwrap();
+    Command::new(myself)
+        .arg("start")
+        .stdout(Stdio::inherit())
+        .spawn()
+        .unwrap();
 }
