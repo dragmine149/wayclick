@@ -3,7 +3,7 @@ use crate::{
     ui::ClickUI,
 };
 use gpui::{AppContext, Application, SharedString, TitlebarOptions, WindowOptions};
-use gpui_component::{Root, Theme, ThemeRegistry};
+use gpui_component::{Root, Theme, ThemeRegistry, TitleBar};
 use gpui_component_assets::Assets;
 
 /// The main UI of the app, built upon zed gpui.
@@ -37,12 +37,20 @@ pub fn ui_main() {
                 ..Default::default()
             };
 
-            cx.open_window(options, |window, cx| {
-                let view = ClickUI::view(window, cx);
+            let window = cx
+                .open_window(options, |window, cx| {
+                    let view = ClickUI::view(window, cx);
 
-                // This first level on the window, should be a Root.
-                cx.new(|cx| Root::new(view, window, cx))
-            })?;
+                    // This first level on the window, should be a Root.
+                    cx.new(|cx| Root::new(view, window, cx))
+                })
+                .expect("Failed to open window");
+
+            window
+                .update(cx, |_, window, _| {
+                    window.set_window_title("WayClicker");
+                })
+                .expect("Failed to update window after launch");
 
             Ok::<_, anyhow::Error>(())
         })

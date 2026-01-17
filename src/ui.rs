@@ -146,11 +146,11 @@ impl ClickUI {
 impl Render for ClickUI {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
         div()
+            .p_1()
             .v_flex()
             .items_center()
             .justify_center()
             .child(self.inspector.clone())
-            .child(Label::new("WayClicker").text_3xl().font_bold())
             .child(self.activate.clone())
             .child(self.macros.clone())
     }
