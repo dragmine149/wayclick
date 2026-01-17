@@ -4,14 +4,16 @@ use crate::{
 };
 use enigo::Direction;
 use gpui::{
-    App, AppContext, Context, Entity, IntoElement, Keystroke, KeystrokeEvent, ParentElement,
-    Render, Styled, Subscription, Window, div,
+    AnyDrag, App, AppContext, Context, Entity, InteractiveElement, IntoElement, Keystroke,
+    KeystrokeEvent, ParentElement, Render, Styled, Subscription, Window, div,
 };
 use gpui_component::{
     StyledExt,
     button::Button,
+    dock::DragDrop,
     gray_600,
     input::{InputEvent, InputState, NumberInput},
+    list::List,
     select::{Select, SelectEvent, SelectState},
 };
 use regex::Regex;
@@ -239,5 +241,29 @@ impl Render for KeyEditor {
             .on_click(cx.listener(|this, ce, window, cx| {
                 this.subscribe(cx, window);
             }))
+    }
+}
+
+pub struct MacroList {
+    items: Vec<MacroEntryUI>,
+    _subscriptions: Vec<Subscription>,
+}
+impl MacroList {
+    fn view(window: &mut Window, cx: &mut App) -> Entity<Self> {
+        cx.new(|cx| Self::new(window, cx))
+    }
+    fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
+        Self {
+            items: Vec::new(),
+            _subscriptions: Vec::new(),
+        }
+    }
+}
+
+impl Render for MacroList {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        div().on_drop(cx.listener(|a, b, c, d| {
+            println!("drop");
+        }))
     }
 }
