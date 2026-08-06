@@ -1,14 +1,40 @@
-use crate::writer::{Writer, config::Config};
+use crate::{
+    home::Home,
+    writer::{Writer, config::Config},
+};
 use anyhow::anyhow;
 use gpui::{
     App, AppContext, AssetSource, AsyncApp, Bounds, Context, Entity, Global, IntoElement,
-    KeyBinding, Length, Render, SharedString, Task, TitlebarOptions, WeakEntity, Window,
-    WindowBounds, WindowOptions, actions, div, px, size,
+    KeyBinding, Length, ParentElement, Render, SharedString, StyleRefinement, Styled, Task,
+    TitlebarOptions, WeakEntity, Window, WindowBounds, WindowOptions, actions, div, px, size,
 };
-use gpui_component::Root;
+use gpui_component::{
+    ActiveTheme, Root,
+    group_box::{GroupBox, GroupBoxVariants},
+    h_flex,
+};
 use rust_embed::RustEmbed;
 use std::{fs, path::PathBuf, sync::mpsc};
 pub(crate) mod writer;
+
+pub(crate) mod home;
+
+/// Taken from gpio-component story/lib.rs
+fn section(title: impl Into<SharedString>, cx: &mut App) -> GroupBox {
+    let title = title.into();
+    GroupBox::new()
+        .w_full()
+        .id(title.clone())
+        .outline()
+        .title(h_flex().justify_between().w_full().gap_4().child(title))
+        .content_style(
+            StyleRefinement::default()
+                .rounded(cx.theme().radius_lg)
+                .overflow_x_hidden()
+                .items_center()
+                .justify_center(),
+        )
+}
 
 /// A trait to skip some of the announces of creating a new entity for a struct all the time.
 pub(crate) trait GPUIStructHelper
@@ -180,30 +206,15 @@ pub fn main(config_dir: PathBuf) {
                     app_id: Some(env!("CARGO_PKG_NAME").to_string()),
                     window_bounds: Some(WindowBounds::Windowed(bounds)),
                     titlebar: Some(TitlebarOptions {
-                        title: Some(
-                            format!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"))
-                                .into(),
-                        ),
+                        title: Some(format!("wayclick {}", env!("CARGO_PKG_VERSION")).into()),
                         ..Default::default()
                     }),
 
                     tabbing_identifier: Some(env!("CARGO_PKG_NAME").to_string()),
                     ..Default::default()
                 },
-                |window, cx| cx.new(|cx| Root::new(BasicView::view(window, cx), window, cx)),
+                |window, cx| cx.new(|cx| Root::new(Home::view(window, cx), window, cx)),
             )
             .unwrap();
         });
-}
-
-struct BasicView {}
-impl GPUIStructHelper for BasicView {
-    fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
-        Self {}
-    }
-}
-impl Render for BasicView {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        div()
-    }
 }

@@ -1,17 +1,25 @@
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fs::{create_dir_all, read, write},
     path::PathBuf,
 };
+use strum_macros::{Display, EnumIter};
 
-use enigo::Button;
-use serde::{Deserialize, Serialize};
+#[derive(Debug, Serialize, Deserialize, Clone, EnumIter, Display)]
+pub enum MouseButton {
+    Left,
+    Right,
+    Middle,
+    Back,
+    Forward,
+}
 
 /// Information about a specific profile.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Profile {
     /// Which mouse button to click
-    pub click: Button,
+    pub click: MouseButton,
     /// How many times to click for (0 = inf)
     pub repeat: usize,
     /// How long to wait before we start.
@@ -25,7 +33,7 @@ pub struct Profile {
 impl Default for Profile {
     fn default() -> Self {
         Self {
-            click: Button::Left,
+            click: MouseButton::Left,
             repeat: 0,
             initial: 0,
             delay: 100,
