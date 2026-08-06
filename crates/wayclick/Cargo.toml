@@ -1,0 +1,17 @@
+[package]
+name = "wayclick"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+dirs.workspace = true
+wayclick_frontend = {
+	optional = true,
+	workspace = true,
+}
+
+[features]
+default = ["full"]
+full = ["macros", "ui"]
+macros = []
+ui = ["dep:wayclick_frontend"]
