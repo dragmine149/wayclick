@@ -262,8 +262,9 @@ impl MacroList {
 
 impl Render for MacroList {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        div().on_drop(cx.listener(|a, b, c, d| {
-            println!("drop");
-        }))
+        div()
+        // div().on_drop(cx.listener(|a, _, c, d| {
+        //     println!("drop");
+        // }))
     }
 }
