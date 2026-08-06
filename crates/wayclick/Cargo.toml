@@ -6,10 +6,16 @@ edition.workspace = true
 [dependencies]
 clap = { version = "4.6.6", features = ["default", "derive"] }
 dirs.workspace = true
+enigo.workspace = true
+# Provides ability to talk to the other instances.
+nix = { version = "0.31.3", features = ["fs", "signal"] }
+# system-notifications
+notify-rust = "4.11.7"
 wayclick_frontend = {
   workspace = true,
   optional = true,
 }
+wayclick_schema.workspace = true
 
 [features]
 default = ["full"]

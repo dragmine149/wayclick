@@ -1,3 +1,26 @@
+use enigo::{Enigo, Mouse};
+use nix::{
+    fcntl::{Flock, FlockArg},
+    sys::signal::{Signal, kill},
+    unistd::Pid,
+};
+use notify_rust::Notification;
+use std::{
+    env::current_exe,
+    fs::{File, OpenOptions},
+    io::{Read, Write},
+    os::unix::fs::OpenOptionsExt,
+    path::PathBuf,
+    process::{self, Command, Stdio},
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    thread,
+    time::Duration,
+};
+use wayclick_schema::Settings;
+
 /// Get the file path where we store the pid.
 ///
 /// Yes this supports multiple systems, do i care that much? nah.
@@ -21,7 +44,7 @@ fn obtain_lock() -> Flock<File> {
         .open(&path)
         .expect("Cannot open pid-file");
     // exclusive, non-blocking lock
-    let file = Flock::lock(file, nix::fcntl::FlockArg::LockExclusiveNonblock);
+    let file = Flock::lock(file, FlockArg::LockExclusiveNonblock);
     if file.is_err() {
         eprintln!("Another instance is already running.");
         process::exit(1);
@@ -49,7 +72,7 @@ fn read_pid() -> Option<Pid> {
 
 /// Start the autoclicker.
 /// TODO: Clean up this code and separate some of it out?
-pub fn daemon_start() {
+pub fn daemon_start(profile: Option<String>) {
     Notification::new()
         .summary("Wayclick")
         .body("Autoclicker is loading")
@@ -63,16 +86,14 @@ pub fn daemon_start() {
     let mut enigo = Enigo::new(&enigo::Settings::default()).unwrap();
     println!("Daemon running… press Ctrl-C or send SIGTERM to stop.");
 
-    let data = Settings::load_data().merge_default();
-    let time =
-        data.milliseconds.unwrap() + data.seconds.unwrap() * 1000 + data.minutes.unwrap() * 60_000;
-    let initial_timeout = Duration::from_secs(data.initial.unwrap() + 1);
+    let data = Settings::load().get_profile(profile);
+    let initial_timeout = Duration::from_secs(data.initial);
 
     let mut notification = Notification::new()
         .summary("Wayclick")
         .body(&format!(
             "Starting autoclicking in {} seconds",
-            data.initial.unwrap()
+            data.initial
         ))
         .timeout(initial_timeout)
         .show()
@@ -83,7 +104,7 @@ pub fn daemon_start() {
     notification.update();
 
     while running.load(Ordering::SeqCst) {
-        thread::sleep(Duration::from_millis(time));
+        thread::sleep(Duration::from_millis(data.delay));
         enigo
             .button(enigo::Button::Left, enigo::Direction::Click)
             .unwrap();
@@ -116,10 +137,10 @@ pub fn daemon_stop() {
 /// Toggle the state of the autoclicker.
 ///
 /// State is gotten from if we have a pid file.
-pub fn toggle_daemon() {
+pub fn toggle_daemon(profile: Option<String>) {
     match read_pid() {
         Some(_) => daemon_stop(),
-        None => daemon_start(),
+        None => daemon_start(profile),
     }
 }
 
