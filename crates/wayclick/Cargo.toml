@@ -4,10 +4,11 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+clap = { version = "4.6.6", features = ["default", "derive"] }
 dirs.workspace = true
 wayclick_frontend = {
-	optional = true,
-	workspace = true,
+  workspace = true,
+  optional = true,
 }
 
 [features]
