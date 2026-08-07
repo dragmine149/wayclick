@@ -273,16 +273,45 @@ impl Render for Home {
                                             .p_2()
                                             .child(
                                                 Button::new("Set")
+                                                    .disabled(profile.position.is_none())
                                                     .label("Set to current Position")
-                                                    .on_click(cx.listener(|this, _, _, _| {
-                                                        println!("click");
-                                                    })),
+                                                    .on_click(cx.listener(
+                                                        |this, _, window, cx| {
+                                                            let pos = wayclick_click::get_pos();
+                                                            this.x_pos.update(cx, |is, cx| {
+                                                                is.set_value(
+                                                                    pos.0.to_string(),
+                                                                    window,
+                                                                    cx,
+                                                                )
+                                                            });
+                                                            this.y_pos.update(cx, |is, cx| {
+                                                                is.set_value(
+                                                                    pos.1.to_string(),
+                                                                    window,
+                                                                    cx,
+                                                                )
+                                                            });
+                                                            this.update_settings(
+                                                                |profile| {
+                                                                    profile.position = Some((
+                                                                        pos.0 as u16,
+                                                                        pos.1 as u16,
+                                                                    ));
+                                                                },
+                                                                cx,
+                                                            )
+                                                        },
+                                                    )),
                                             )
                                             .child(
                                                 Button::new("test")
-                                                    .label("Test (does 1 click)")
-                                                    .on_click(cx.listener(|this, _, _, _| {
-                                                        println!("CLick");
+                                                    .disabled(profile.position.is_none())
+                                                    .label("Test (Move mouse to pos)")
+                                                    .on_click(cx.listener(move |this, _, _, _| {
+                                                        wayclick_click::move_mouse(
+                                                            profile.position.unwrap(),
+                                                        );
                                                     })),
                                             ),
                                     ),
@@ -313,8 +342,26 @@ impl Render for Home {
                 section("Controls", cx).h_10().child(
                     h_flex()
                         .h_full()
-                        .child(Button::new("start").p_2().label("Start").h_3())
-                        .child(Button::new("stop").p_2().label("stop").h_3()),
+                        .child(
+                            Button::new("start")
+                                .p_2()
+                                .label("Start")
+                                .h_3()
+                                .disabled(wayclick_click::is_clicking())
+                                .on_click(|_, _, _| {
+                                    wayclick_click::start_subprocess();
+                                }),
+                        )
+                        .child(
+                            Button::new("stop")
+                                .p_2()
+                                .label("stop")
+                                .h_3()
+                                .disabled(!wayclick_click::is_clicking())
+                                .on_click(|_, _, _| {
+                                    wayclick_click::daemon_stop();
+                                }),
+                        ),
                 ),
             )
     }

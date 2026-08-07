@@ -112,6 +112,11 @@ pub fn daemon_start(profile: Option<String>) {
 
     while running.load(Ordering::SeqCst) {
         thread::sleep(Duration::from_millis(data.delay));
+        if let Some(pos) = data.position {
+            enigo
+                .move_mouse(pos.0 as i32, pos.1 as i32, enigo::Coordinate::Abs)
+                .unwrap();
+        }
         enigo
             .button(enigo::Button::Left, enigo::Direction::Click)
             .unwrap();
@@ -153,6 +158,10 @@ pub fn toggle_daemon(profile: Option<String>) {
     }
 }
 
+pub fn is_clicking() -> bool {
+    return read_pid().is_some();
+}
+
 pub fn start_subprocess() {
     let myself = current_exe().unwrap();
     Command::new(myself)
@@ -166,5 +175,12 @@ pub fn get_pos() -> (i32, i32) {
     enigo::Enigo::new(&enigo::Settings::default())
         .unwrap()
         .location()
+        .unwrap()
+}
+
+pub fn move_mouse(position: (u16, u16)) {
+    enigo::Enigo::new(&enigo::Settings::default())
+        .unwrap()
+        .move_mouse(position.0 as i32, position.1 as i32, enigo::Coordinate::Abs)
         .unwrap()
 }
