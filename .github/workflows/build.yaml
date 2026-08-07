@@ -30,7 +30,7 @@ jobs:
       - name: Build lite
         run: cargo build --release --no-default-features
 
-      - uses: actions/upload-artifact@V7
+      - uses: actions/upload-artifact@v7
         with:
           name: "wayclick-lite.x86_64"
           path: target/release/wayclick
