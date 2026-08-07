@@ -7473,10 +7473,19 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "dirs",
+ "wayclick_click",
+ "wayclick_frontend",
+ "wayclick_schema",
+]
+
+[[package]]
+name = "wayclick_click"
+version = "0.1.0"
+dependencies = [
+ "dirs",
  "enigo",
  "nix",
  "notify-rust",
- "wayclick_frontend",
  "wayclick_schema",
 ]
 
@@ -7497,6 +7506,7 @@ dependencies = [
  "serde_json",
  "strum 0.28.0",
  "tokio",
+ "wayclick_click",
  "wayclick_schema",
 ]
 

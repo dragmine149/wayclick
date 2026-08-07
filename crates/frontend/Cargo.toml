@@ -24,3 +24,4 @@ strum.workspace = true
 tokio.workspace = true
 
 wayclick_schema.workspace = true
+wayclick_click.workspace = true

@@ -1,0 +1,14 @@
+[package]
+name = "wayclick_click"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+enigo = { version = "0.6.1", features = ["serde", "wayland"] }
+# Provides ability to talk to the other instances.
+nix = { version = "0.31.3", features = ["fs", "signal"] }
+dirs.workspace = true
+# system-notifications
+notify-rust = "4.11.7"
+
+wayclick_schema.workspace = true

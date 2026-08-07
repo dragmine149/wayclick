@@ -62,11 +62,7 @@ impl Settings {
     /// If we failed to create something, don't care not our issue to deal with.
     pub fn load() -> Self {
         let path = dir().join("Settings.json");
-        let Ok(data) = read(path) else {
-            let default = Self::default();
-            default.save();
-            return default;
-        };
+        let data = read(path).expect("Failed to read data from Settings.json");
         serde_json::from_slice(&data).expect("Json data got maulformed. Please fix.")
     }
 
@@ -84,14 +80,19 @@ impl Settings {
         self.profiles
             .get(&profile_name)
             .map(|p| p.to_owned())
-            .unwrap()
+            .expect(&format!(
+                "Invalid profile name ({profile_name}) or missing profile"
+            ))
     }
 
     pub fn get_default_profile(&self) -> Profile {
         self.profiles
             .get(&self.default_profile)
             .map(|p| p.to_owned())
-            .unwrap()
+            .expect(&format!(
+                "Invalid profile name ({}) or missing profile",
+                self.default_profile
+            ))
     }
 
     pub fn get_profile_mut(&mut self, profile: Option<impl Into<String>>) -> Option<&mut Profile> {
@@ -101,12 +102,17 @@ impl Settings {
         self.profiles.get_mut(&profile_name)
     }
     pub fn get_default_profile_mut(&mut self) -> &mut Profile {
-        self.profiles.get_mut(&self.default_profile).unwrap()
+        self.profiles
+            .get_mut(&self.default_profile)
+            .expect(&format!(
+                "Invalid profile name ({}) or missing profile",
+                self.default_profile
+            ))
     }
 }
 
 pub fn dir() -> PathBuf {
-    let dir = dirs::data_dir().unwrap().join("wayclick");
+    let dir = dirs::config_dir().unwrap().join("wayclick");
     create_dir_all(&dir).expect("Failed to create directory");
     dir
 }

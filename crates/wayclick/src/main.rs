@@ -1,14 +1,13 @@
-use clap::{CommandFactory, Parser};
+use clap::Parser;
 #[cfg(feature = "ui")]
 use wayclick_frontend;
+#[cfg(feature = "ui")]
+use wayclick_schema::dir;
 
-use crate::{
-    cli::Cli,
-    click::{daemon_start, daemon_stop, toggle_daemon},
-};
+use crate::cli::Cli;
+use wayclick_click::{daemon_start, daemon_stop, toggle_daemon};
 
 pub(crate) mod cli;
-pub(crate) mod click;
 
 pub fn main() {
     let commands = Cli::parse();
@@ -21,7 +20,7 @@ pub fn main() {
     }
 
     #[cfg(feature = "ui")]
-    wayclick_frontend::main(dirs::config_dir().unwrap().join("wayclick"));
+    wayclick_frontend::main(dir());
 
     #[cfg(not(feature = "ui"))]
     Cli::command().print_help().expect("Invalid clap cli setup");
