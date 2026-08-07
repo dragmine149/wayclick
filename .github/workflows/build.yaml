@@ -1,0 +1,36 @@
+name: Build Rust
+
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+    branches:
+      - "main"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: "true"
+
+      - name: Build
+        run: cargo build --release
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: "wayclick.x86_64"
+          path: target/release/wayclick
+
+      - name: Build lite
+        run: cargo build --release --no-default-features
+
+      - uses: actions/upload-artifact@V7
+        with:
+          name: "wayclick-lite.x86_64"
+          path: target/release/wayclick
