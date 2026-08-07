@@ -7506,7 +7506,6 @@ name = "wayclick_frontend"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-channel",
  "dirs",
  "gpui",
  "gpui-component",

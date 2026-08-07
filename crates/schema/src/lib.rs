@@ -80,19 +80,19 @@ impl Settings {
         self.profiles
             .get(&profile_name)
             .map(|p| p.to_owned())
-            .expect(&format!(
-                "Invalid profile name ({profile_name}) or missing profile"
-            ))
+            .unwrap_or_else(|| panic!("Invalid profile name ({profile_name}) or missing profile"))
     }
 
     pub fn get_default_profile(&self) -> Profile {
         self.profiles
             .get(&self.default_profile)
             .map(|p| p.to_owned())
-            .expect(&format!(
-                "Invalid profile name ({}) or missing profile",
-                self.default_profile
-            ))
+            .unwrap_or_else(|| {
+                panic!(
+                    "Invalid profile name ({}) or missing profile",
+                    self.default_profile
+                )
+            })
     }
 
     pub fn get_profile_mut(&mut self, profile: Option<impl Into<String>>) -> Option<&mut Profile> {
@@ -104,10 +104,12 @@ impl Settings {
     pub fn get_default_profile_mut(&mut self) -> &mut Profile {
         self.profiles
             .get_mut(&self.default_profile)
-            .expect(&format!(
-                "Invalid profile name ({}) or missing profile",
-                self.default_profile
-            ))
+            .unwrap_or_else(|| {
+                panic!(
+                    "Invalid profile name ({}) or missing profile",
+                    self.default_profile
+                )
+            })
     }
 }
 

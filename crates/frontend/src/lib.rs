@@ -1,9 +1,9 @@
 use crate::{home::Home, writer::Writer};
 use anyhow::anyhow;
 use gpui::{
-    App, AppContext, AssetSource, AsyncApp, Bounds, Context, Entity, Global, IntoElement,
-    KeyBinding, Length, ParentElement, Render, SharedString, StyleRefinement, Styled, Task,
-    TitlebarOptions, WeakEntity, Window, WindowBounds, WindowOptions, actions, div, px, size,
+    App, AppContext, AssetSource, Bounds, Context, Entity, Global, KeyBinding, ParentElement,
+    SharedString, StyleRefinement, Styled, TitlebarOptions, Window, WindowBounds, WindowOptions,
+    actions, px, size,
 };
 use gpui_component::{
     ActiveTheme, Root,
@@ -11,11 +11,10 @@ use gpui_component::{
     h_flex,
 };
 use rust_embed::RustEmbed;
-use std::{fs, path::PathBuf, sync::mpsc};
+use std::{fs, path::PathBuf};
 use wayclick_schema::Settings;
-pub(crate) mod writer;
-
 pub(crate) mod home;
+pub(crate) mod writer;
 
 /// Taken from gpio-component story/lib.rs
 fn section(title: impl Into<SharedString>, cx: &mut App) -> GroupBox {
@@ -63,60 +62,11 @@ pub trait GlobalExt: Global + Sized {
         cx.global::<Self>().clone()
     }
     fn get(cx: &App) -> &Self {
-        &cx.global::<Self>()
+        cx.global::<Self>()
     }
     fn get_mut(cx: &mut App) -> &mut Self {
         cx.global_mut::<Self>()
     }
-}
-
-/// Move an event from an outsider thread into the inside (gpui)
-///
-/// # Parameters
-/// - cx: Context of the entity for access to said entity. Better than `&mut [gpui::app]`
-/// - receiver: The receiver to forward the messages from.
-/// - f: The callback function, exactly the same as [gpui::Context::spawn] but with the addition of [async_channel::Receiver] dedicated to the input receiver.
-///
-/// # Returns
-/// Same thing as [gpui::Context::spawm] does, and is what expected by the inner function. The background task runs in the background and theres no nice *currently* way to stop that.
-pub(crate) fn thread_to_main<AsyncFn, R, T, Cont>(
-    cx: &mut Context<Cont>,
-    receiver: mpsc::Receiver<T>,
-    f: AsyncFn,
-) -> Task<R>
-where
-    AsyncFn:
-        AsyncFnOnce(WeakEntity<Cont>, &mut AsyncApp, async_channel::Receiver<T>) -> R + 'static,
-    R: 'static,
-    T: Send + 'static,
-    Cont: 'static,
-{
-    println!("Setup connections");
-    let (tx, rx) = async_channel::unbounded::<T>();
-    cx.background_spawn(async move {
-        loop {
-            tx.send(
-                receiver
-                    .recv()
-                    .unwrap_or_else(|err| panic!("Failed to get receiver message {}", err)),
-            )
-            .await
-            .expect("Failed to send receiver message");
-        }
-    })
-    .detach();
-
-    println!("Returning spawn obj");
-    cx.spawn(async move |this, cx| f(this, cx, rx).await)
-}
-
-/// Use a percentage in terms of length. Shorthand for `Length::Definite(gpui::DefiniteLength::Fraction())`
-///
-/// value is in terms of percentage, hence is valid between 0 and 100. value will also be clamped if it's too high.
-pub(crate) fn percent(value: f32) -> Length {
-    Length::Definite(gpui::DefiniteLength::Fraction(
-        value.clamp(0.0, 100.0) / 100.0,
-    ))
 }
 
 pub(crate) fn load_theme(cx: &mut App, theme_name: &SharedString) {

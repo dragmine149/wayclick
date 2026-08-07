@@ -15,7 +15,6 @@ use std::{
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
-        mpsc::channel,
     },
     thread,
     time::Duration,
@@ -108,7 +107,7 @@ pub fn daemon_start(profile: Option<String>) {
 
     thread::sleep(initial_timeout);
     notification.body("Autoclicking...").timeout(0);
-    notification.update();
+    let _ = notification.update();
 
     while running.load(Ordering::SeqCst) {
         thread::sleep(Duration::from_millis(data.delay));
@@ -126,7 +125,7 @@ pub fn daemon_start(profile: Option<String>) {
         //     .unwrap();
     }
     notification.body("Autoclicking finished").timeout(2);
-    notification.update();
+    let _ = notification.update();
     println!("Daemon stopping…");
     file.set_len(0).unwrap()
 }
@@ -159,9 +158,14 @@ pub fn toggle_daemon(profile: Option<String>) {
 }
 
 pub fn is_clicking() -> bool {
-    return read_pid().is_some();
+    read_pid().is_some()
 }
 
+/// Start a new process in the background.
+///
+/// We dont need to worry about zombie processes as we clean it up by stopping it. This autoclicker is designed to run in the background with no UI interaction.
+/// Waiting for this to finish would also break stuff that isn't on a separate thread.
+#[allow(clippy::zombie_processes)]
 pub fn start_subprocess() {
     let myself = current_exe().unwrap();
     Command::new(myself)

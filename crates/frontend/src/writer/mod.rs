@@ -25,6 +25,7 @@ impl<Writer> Global for WriterHolder<Writer> where
 {
 }
 
+#[allow(dead_code)]
 pub trait Writer
 where
     Self:

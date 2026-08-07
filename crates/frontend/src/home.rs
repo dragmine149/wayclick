@@ -1,18 +1,15 @@
-use std::time::Duration;
-
 use crate::{GPUIStructHelper, section, writer::Writer};
 use gpui::{
-    Action, AppContext, Context, Entity, IntoElement, ParentElement, Render, SharedString,
-    StyleRefinement, Styled, Subscription, Window, actions, div,
+    AppContext, Context, Entity, IntoElement, ParentElement, Render, Styled, Subscription, Window,
+    div,
 };
 use gpui_component::{
     Disableable,
-    button::{Button, DropdownButton},
+    button::Button,
     h_flex,
     input::{InputEvent, InputState, NumberInput},
     menu::{DropdownMenu, PopupMenuItem},
     radio::{Radio, RadioGroup},
-    setting::SettingField,
     v_flex,
 };
 use strum::IntoEnumIterator;
@@ -155,7 +152,7 @@ impl Home {
 }
 
 impl Render for Home {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let view = cx.entity();
         let profile = Settings::get(cx).get_default_profile();
         div()
@@ -308,11 +305,11 @@ impl Render for Home {
                                                 Button::new("test")
                                                     .disabled(profile.position.is_none())
                                                     .label("Test (Move mouse to pos)")
-                                                    .on_click(cx.listener(move |this, _, _, _| {
+                                                    .on_click(move |_, _, _| {
                                                         wayclick_click::move_mouse(
                                                             profile.position.unwrap(),
                                                         );
-                                                    })),
+                                                    }),
                                             ),
                                     ),
                             ),
@@ -326,10 +323,10 @@ impl Render for Home {
                                 0 => None,
                                 _ => Some((
                                     view.x_pos
-                                        .read_with(cx, |v, cx| v.value().parse::<u64>())
+                                        .read_with(cx, |v, _| v.value().parse::<u64>())
                                         .unwrap() as u16,
                                     view.y_pos
-                                        .read_with(cx, |v, cx| v.value().parse::<u64>())
+                                        .read_with(cx, |v, _| v.value().parse::<u64>())
                                         .unwrap() as u16,
                                 )),
                             };

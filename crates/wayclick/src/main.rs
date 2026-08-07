@@ -1,7 +1,5 @@
 use clap::Parser;
 #[cfg(feature = "ui")]
-use wayclick_frontend;
-#[cfg(feature = "ui")]
 use wayclick_schema::dir;
 
 use crate::cli::Cli;
