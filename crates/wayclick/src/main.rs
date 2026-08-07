@@ -1,4 +1,7 @@
+#[cfg(not(feature = "ui"))]
+use clap::CommandFactory;
 use clap::Parser;
+
 #[cfg(feature = "ui")]
 use wayclick_schema::dir;
 
