@@ -2,29 +2,68 @@
 
 An autoclicker/macro designed for wayland compositors.
 
-## Support Platforms
-- [X] Wayland*
+## Installation
+Download the program from the release tab, or compile it yourself.
 
-### Notes
-I've only tested this on `Fedora 43, KDE Plasma 6.7.3, Wayland`, aka my setup. In practice however, most of this code might run on any system. It doesn't mean i'll support those systems, use something like [OpAutoClicker](https://www.opautoclicker.com/)
-instead.
+Then place the file in `~/.local/bin` (or path or whatever you use)
+
+There is not yet any official support for package managers.
+
+### Versions
+There are two main distributed versions, `wayclick` and `wayclick-lite`
+
+#### Wayclick (recommended)
+This is the full version of the application, contains everything and is the recommended download.
+
+This contains the clicker, and a UI to edit the config files alongside it.
+
+#### Wayclick lite
+This version contains the minimum amount of things require to autoclick.
+
+Hence things like a settings UI are excluded. This version is both way lighter (memory) and smaller file size, however it does leave config to only `settings.json`
 
 ## Usage
-There are 2 modes to this program, CLI-based and UI-based.
+To run the program, open the file.
+- If running the `lite` mode, the help dialogue will appear
+- If running the `full` mode, the UI will appear for every setting.
 
-### Commands
-Opens up the UI version
+Additionally, the following command line options can be used
 ```sh
-$ wayclick
-```
-Run the CLI
-```sh
-$ wayclick start # Starts the autoclicker
-$ wayclick stop # stops the autoclicker
-$ wayclick toggle # Toggles the autoclicker
+wayclick start
+wayclick stop
+wayclick toggle
 ```
 
-I **Highly** recommend using the system to assign a shortcut to either the `stop` or `toggle` commands. Due to being on wayland, listening to keyboard inputs is possible but a bit iffy, hence its something i won't pioritise.
+### Profiles
+Profile management is in it's basic format currently, hence can only be ran in certain situations and might be very buggy.
 
-## Tests
-There are no tests, just because i'm not fully sure on how to automate testing a tool such as this.
+To use a profile (that exists), add the profile name after the command. `stop` is the only command that doesn't take a profile.
+
+### Recommendation
+I **HIGHLY** recommend you to set up a global shortcut to run the command `wayclick stop` at least, or `wayclick toggle`. 
+
+Wayland and global shortcuts are in a bit of a weird state currently *which i'm not fully familiar with*, hence i won't be tackling that straightaway.
+
+## Features
+- Autoclicker
+- Settings UI
+- Profile Management (settings file only)
+
+### Planned
+- Macro editor (in full)
+- Profile Management
+- Package manager usage
+- Global keybinds
+
+### Feature Flags (for rust devs)
+#### Default
+Default flags, for now is the same as doing `full`
+
+#### Full
+Contains everything
+
+#### Macros (unused)
+planned feature, but will be used for the macro editor mainly
+
+#### UI
+Enable the UI (using [gpui](https://gpui.rs)) in the build.
