@@ -42,12 +42,16 @@ impl Default for Profile {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct Settings {
     /// List of all profiles
     pub profiles: HashMap<String, Profile>,
     /// The default profile to use if not specified.
+    ///
+    /// Will default to last profile used.
     pub default_profile: String,
+    /// The theme to use for the app
+    pub active_theme: String,
 }
 
 impl Settings {
@@ -57,13 +61,20 @@ impl Settings {
     /// If we don't have the dir, create one.
     /// If we failed to create something, don't care not our issue to deal with.
     pub fn load() -> Self {
-        let path = dir().join("settings.json");
+        let path = dir().join("Settings.json");
         let Ok(data) = read(path) else {
             let default = Self::default();
             default.save();
             return default;
         };
         serde_json::from_slice(&data).expect("Json data got maulformed. Please fix.")
+    }
+
+    /// Save the settings to disk.
+    pub fn save(&self) {
+        let path = dir().join("settings.json");
+        write(path, serde_json::to_vec(self).expect("This shouldn't fail"))
+            .expect("Unable to write data")
     }
 
     pub fn get_profile(&self, profile: Option<impl Into<String>>) -> Profile {
@@ -73,14 +84,24 @@ impl Settings {
         self.profiles
             .get(&profile_name)
             .map(|p| p.to_owned())
-            .unwrap_or_default()
+            .unwrap()
     }
 
-    /// Save the settings to disk.
-    pub fn save(&self) {
-        let path = dir().join("settings.json");
-        write(path, serde_json::to_vec(self).expect("This shouldn't fail"))
-            .expect("Unable to write data")
+    pub fn get_default_profile(&self) -> Profile {
+        self.profiles
+            .get(&self.default_profile)
+            .map(|p| p.to_owned())
+            .unwrap()
+    }
+
+    pub fn get_profile_mut(&mut self, profile: Option<impl Into<String>>) -> Option<&mut Profile> {
+        let profile_name = profile
+            .map(|p| p.into())
+            .unwrap_or(self.default_profile.clone());
+        self.profiles.get_mut(&profile_name)
+    }
+    pub fn get_default_profile_mut(&mut self) -> &mut Profile {
+        self.profiles.get_mut(&self.default_profile).unwrap()
     }
 }
 

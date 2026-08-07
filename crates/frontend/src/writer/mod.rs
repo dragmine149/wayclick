@@ -2,12 +2,12 @@ use gpui::{App, Global, Task};
 use rand::RngExt;
 use serde::{Deserialize, Serialize};
 use std::{io::Write, path::Path, sync::Arc, time::Duration};
+use wayclick_schema::Settings;
 
-use crate::writer::config::Config;
 pub mod config;
 
 pub(crate) fn init_writers(cx: &mut App, path: &Path) {
-    Config::init(cx, path);
+    Settings::init(cx, path);
 }
 
 struct WriterHolder<Writer>
@@ -32,8 +32,10 @@ where
 {
     fn init(cx: &mut App, path: &Path) {
         let path: Arc<Path> = path.join(format!("{}.json", Self::get_name())).into();
+        let mut data = try_read_json::<Self>(&path);
+        data.post_load();
         cx.set_global(WriterHolder {
-            data: try_read_json::<Self>(&path),
+            data,
             write_task: None,
             path,
         });
@@ -56,7 +58,7 @@ where
         if cx.global::<WriterHolder<Self>>().write_task.is_none() {
             let task = cx.spawn(async |app| {
                 app.background_executor()
-                    .timer(Duration::from_secs(5))
+                    .timer(Duration::from_secs(1))
                     .await;
                 app.update_global::<WriterHolder<Self>, _>(|holder, _| {
                     println!("Writing {} to disk!", Self::get_name());
@@ -80,6 +82,9 @@ where
 pub trait Save {
     /// Run the code before saving to disk.
     fn pre_save(&mut self) {}
+
+    /// Run this code after loading the data.
+    fn post_load(&mut self) {}
 }
 
 impl<Writer> WriterHolder<Writer>

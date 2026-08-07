@@ -1,7 +1,4 @@
-use crate::{
-    home::Home,
-    writer::{Writer, config::Config},
-};
+use crate::{home::Home, writer::Writer};
 use anyhow::anyhow;
 use gpui::{
     App, AppContext, AssetSource, AsyncApp, Bounds, Context, Entity, Global, IntoElement,
@@ -15,6 +12,7 @@ use gpui_component::{
 };
 use rust_embed::RustEmbed;
 use std::{fs, path::PathBuf, sync::mpsc};
+use wayclick_schema::Settings;
 pub(crate) mod writer;
 
 pub(crate) mod home;
@@ -131,7 +129,7 @@ pub(crate) fn load_theme(cx: &mut App, theme_name: &SharedString) {
         glob_theme.apply_config(&theme);
         // println!("{:?}", theme.font_family);
         // println!("{:?}", glob_theme.font_family);
-        Config::get_mut(cx).active_theme = theme_name.to_owned();
+        Settings::get_mut(cx).active_theme = theme_name.to_string();
         println!("Loaded new theme: {:?}", theme_name);
     }
 }
@@ -178,16 +176,16 @@ pub fn main(config_dir: PathBuf) {
             }
 
             _ = gpui_component::ThemeRegistry::watch_dir(theme_folder.clone(), cx, move |cx| {
-                let theme_name = Config::get(cx).active_theme.clone();
+                let theme_name = Settings::get(cx).active_theme.clone();
                 if theme_name.is_empty() {
                     return;
                 }
-                load_theme(cx, &theme_name);
+                load_theme(cx, &SharedString::from(theme_name));
             });
 
             // TODO: Customise keybinds? *or at least add more*
             cx.on_app_quit(|cx| {
-                Config::force_save(cx);
+                Settings::force_save(cx);
                 async {}
             })
             .detach();

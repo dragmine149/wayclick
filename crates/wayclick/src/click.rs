@@ -152,3 +152,10 @@ pub fn start_subprocess() {
         .spawn()
         .unwrap();
 }
+
+pub fn get_pos() -> (i32, i32) {
+    enigo::Enigo::new(&enigo::Settings::default())
+        .unwrap()
+        .location()
+        .unwrap()
+}
