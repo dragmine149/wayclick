@@ -17,6 +17,7 @@ pub fn main() {
             cli::SubCommands::Stop => daemon_stop(),
             cli::SubCommands::Toggle(autoclicker_args) => toggle_daemon(autoclicker_args.profile),
         }
+        return;
     }
 
     #[cfg(feature = "ui")]

@@ -15,6 +15,7 @@ use std::{
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
+        mpsc::channel,
     },
     thread,
     time::Duration,
@@ -73,6 +74,13 @@ fn read_pid() -> Option<Pid> {
 /// Start the autoclicker.
 /// TODO: Clean up this code and separate some of it out?
 pub fn daemon_start(profile: Option<String>) {
+    let running = Arc::new(AtomicBool::new(true));
+    let r = running.clone();
+    ctrlc::set_handler(move || {
+        r.store(false, Ordering::SeqCst);
+    })
+    .expect("Error setting Ctrl-C handler");
+
     Notification::new()
         .summary("Wayclick")
         .body("Autoclicker is loading")
@@ -82,7 +90,6 @@ pub fn daemon_start(profile: Option<String>) {
     write_pid(&file);
 
     // graceful shutdown on SIGTERM
-    let running = Arc::new(AtomicBool::new(true));
     let mut enigo = Enigo::new(&enigo::Settings::default()).unwrap();
     println!("Daemon running… press Ctrl-C or send SIGTERM to stop.");
 
@@ -116,6 +123,7 @@ pub fn daemon_start(profile: Option<String>) {
     notification.body("Autoclicking finished").timeout(2);
     notification.update();
     println!("Daemon stopping…");
+    file.set_len(0).unwrap()
 }
 
 /// Stop the autoclicker by getting the pid and sending a term signal.
@@ -123,13 +131,14 @@ pub fn daemon_start(profile: Option<String>) {
 pub fn daemon_stop() {
     match read_pid() {
         Some(pid) => {
-            kill(pid, Signal::SIGTERM)
-                .unwrap_or_else(|_| panic!("Failed to send SIGTERM ({})", pid));
+            kill(pid, Signal::SIGTERM).unwrap_or_else(|_| {
+                println!("Failed to send SIGTERM ({}) (app already closed?)", pid)
+            });
             std::fs::remove_file(pid_file_path()).ok();
             println!("Sent SIGTERM to {pid}");
         }
         None => {
-            eprintln!("No pid-file found; nothing to stop.");
+            eprintln!("Autoclicker isn't running.");
         }
     }
 }
