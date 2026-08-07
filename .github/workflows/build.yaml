@@ -19,6 +19,9 @@ jobs:
         with:
           cache-on-failure: "true"
 
+      - name: Make yeslogic happy
+        run: sudo apt install libfontconfig1-dev pkg-config fontconfig libfontconfig-dev -y
+
       - name: Build
         run: cargo build --release
 
