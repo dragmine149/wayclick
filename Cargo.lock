@@ -7512,7 +7512,6 @@ dependencies = [
  "gpui-component-assets",
  "gpui_platform",
  "rand 0.10.2",
- "rust-embed",
  "serde",
  "serde_json",
  "strum 0.28.0",

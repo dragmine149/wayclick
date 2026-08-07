@@ -1,16 +1,14 @@
 use crate::{home::Home, writer::Writer};
-use anyhow::anyhow;
 use gpui::{
-    App, AppContext, AssetSource, Bounds, Context, Entity, Global, KeyBinding, ParentElement,
-    SharedString, StyleRefinement, Styled, TitlebarOptions, Window, WindowBounds, WindowOptions,
-    actions, px, size,
+    App, AppContext, Bounds, Context, Entity, Global, KeyBinding, ParentElement, SharedString,
+    StyleRefinement, Styled, TitlebarOptions, Window, WindowBounds, WindowOptions, actions, px,
+    size,
 };
 use gpui_component::{
     ActiveTheme, Root,
     group_box::{GroupBox, GroupBoxVariants},
     h_flex,
 };
-use rust_embed::RustEmbed;
 use std::{fs, path::PathBuf};
 use wayclick_schema::Settings;
 pub(crate) mod home;
@@ -84,35 +82,11 @@ pub(crate) fn load_theme(cx: &mut App, theme_name: &SharedString) {
     }
 }
 
-/// Holds and loads custom assets.
-#[derive(RustEmbed)]
-#[folder = "../../assets"]
-#[include = "*"]
-pub struct Assets;
-
-impl AssetSource for Assets {
-    fn load(&self, path: &str) -> gpui::Result<Option<std::borrow::Cow<'static, [u8]>>> {
-        if path.is_empty() {
-            return Ok(None);
-        }
-        Self::get(path)
-            .map(|f| Some(f.data))
-            .ok_or_else(|| anyhow!("could not find asset at path \"{path}\""))
-    }
-
-    fn list(&self, path: &str) -> gpui::Result<Vec<SharedString>> {
-        Ok(Self::iter()
-            .filter_map(|p| p.starts_with(path).then(|| p.into()))
-            .collect())
-    }
-}
-
 actions!([Quit]);
 
 pub fn main(config_dir: PathBuf) {
     gpui_platform::application()
         .with_assets(gpui_component_assets::Assets)
-        .with_assets(Assets)
         .run(move |cx| {
             gpui_component::init(cx);
             // TODO: Sort out themes.
