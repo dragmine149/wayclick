@@ -1,19 +1,20 @@
-use crate::{GPUIStructHelper, section, writer::Writer};
+use crate::{section, thread_to_main, writer::Writer};
 use gpui::{
-    AppContext, Context, Entity, IntoElement, ParentElement, Render, Styled, Subscription, Window,
-    div,
+    AnyWindowHandle, App, AppContext, AsyncApp, Context, Entity, IntoElement, ParentElement,
+    Render, Styled, Subscription, WeakEntity, Window, div,
 };
 use gpui_component::{
-    Disableable,
-    button::Button,
+    Disableable, Root, WindowExt,
+    button::{Button, ButtonVariants},
     h_flex,
     input::{InputEvent, InputState, NumberInput},
     menu::{DropdownMenu, PopupMenuItem},
+    notification::Notification,
     radio::{Radio, RadioGroup},
     v_flex,
 };
 use strum::IntoEnumIterator;
-use wayclick_schema::{Profile, Settings};
+use wayclick_schema::{Profile, Settings, TransferData};
 
 pub struct Home {
     hour: Entity<InputState>,
@@ -24,12 +25,16 @@ pub struct Home {
     x_pos: Entity<InputState>,
     y_pos: Entity<InputState>,
     _subscriptions: Vec<Subscription>,
+    main_window: AnyWindowHandle,
 }
 
 impl Home {}
 
-impl GPUIStructHelper for Home {
-    fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
+impl Home {
+    pub fn view(window: &mut Window, cx: &mut App, data: TransferData) -> Entity<Self> {
+        cx.new(|cx| Self::new(window, cx, data))
+    }
+    fn new(window: &mut Window, cx: &mut Context<Self>, data: TransferData) -> Self {
         let profile = Settings::get(cx).get_default_profile();
         let ms = profile.delay;
         let hour = ms / 3_600_000;
@@ -93,6 +98,31 @@ impl GPUIStructHelper for Home {
             }),
         ];
 
+        thread_to_main(cx, data.rx, async move |this, cx, rx| {
+            let new = rx.recv().await.unwrap().version;
+            let current = env!("CARGO_PKG_VERSION");
+            if new != current {
+                _ = Self::weak_notify(
+                    &this,
+                    Notification::new()
+                        .title("Update Available")
+                        .message(format!("New version: {new}. Current version: {current}"))
+                        .autohide(false)
+                        .action(|_, _, cx| {
+                            Button::new("Open github")
+                                .primary()
+                                .label("Open Github")
+                                .on_click(cx.listener(|this, _, window, cx| {
+                                    cx.open_url("https://wayclick.dragmine.me");
+                                    this.dismiss(window, cx);
+                                }))
+                        }),
+                    cx,
+                );
+            }
+        })
+        .detach();
+
         Self {
             hour,
             mins,
@@ -118,11 +148,33 @@ impl GPUIStructHelper for Home {
                 is
             }),
             _subscriptions: subscriptions,
+            main_window: window.window_handle(),
         }
     }
 }
 
 impl Home {
+    /// even even more shorthand for notification.
+    ///
+    /// # Usage
+    /// ```rs
+    /// let _ = Self::weak_notify(this, Notification::new(), cx);
+    /// ```
+    fn weak_notify(
+        this: &WeakEntity<Self>,
+        notification: Notification,
+        cx: &mut AsyncApp,
+    ) -> anyhow::Result<()> {
+        this.update(cx, |this, cx| this.notify(notification, cx))?
+    }
+
+    /// Shorthand for notification, saves repeating it a bit.
+    fn notify(&mut self, notification: Notification, cx: &mut Context<Self>) -> anyhow::Result<()> {
+        cx.update_window(self.main_window, |_, win, cx| {
+            win.push_notification(notification, cx);
+        })
+    }
+
     fn update_settings<F>(&self, update_fn: F, cx: &mut Context<Self>)
     where
         F: Fn(&mut Profile),
@@ -152,7 +204,9 @@ impl Home {
 }
 
 impl Render for Home {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let notification_layer = Root::render_notification_layer(window, cx);
+
         let view = cx.entity();
         let profile = Settings::get(cx).get_default_profile();
         div()
@@ -361,5 +415,6 @@ impl Render for Home {
                         ),
                 ),
             )
+            .children(notification_layer)
     }
 }

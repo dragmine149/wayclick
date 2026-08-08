@@ -2,7 +2,6 @@ use clap::{Args, Parser, Subcommand};
 
 #[derive(Debug, Parser)]
 #[command(
-    version,
     about = "An autoclicker designed for use with wayland compositors",
     long_about = "Adding yet another autoclicker to the massive collection of autoclickers. Wayland linux is hard to find an autoclicker for though, hence this."
 )]
@@ -15,6 +14,9 @@ pub struct Cli {
     )]
     #[command(subcommand)]
     pub command: Option<SubCommands>,
+    /// Check and print the version of the application.
+    #[arg(short, long, default_value = "false")]
+    pub version: bool,
 }
 
 #[derive(Debug, Subcommand)]

@@ -14,7 +14,7 @@ serde = "1.0.229"
 serde_json = "1.0.151"
 strum = "0.28.0"
 strum_macros = "0.28.0"
-tokio = "1.53.1"
+tokio = { version = "1.53.1", features = ["full"] }
 
 wayclick_click = { path = "crates/click/" }
 wayclick_frontend = { path = "crates/frontend/" }

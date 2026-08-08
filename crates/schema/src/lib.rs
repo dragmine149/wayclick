@@ -3,6 +3,7 @@ use std::{
     collections::HashMap,
     fs::{create_dir_all, read, write},
     path::PathBuf,
+    sync::mpsc::Receiver,
 };
 use strum_macros::{Display, EnumIter};
 
@@ -117,4 +118,16 @@ pub fn dir() -> PathBuf {
     let dir = dirs::config_dir().unwrap().join("wayclick");
     create_dir_all(&dir).expect("Failed to create directory");
     dir
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ServerResponse {
+    pub version: String,
+}
+
+/// Additional data to transfer into the application.
+///
+/// Use this for stuff like [std::sync::mpsc::channel] for sending data between threads.
+pub struct TransferData {
+    pub rx: Receiver<ServerResponse>,
 }
