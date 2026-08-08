@@ -5,8 +5,14 @@ An autoclicker/macro designed for wayland compositors.
 ## Installation
 Download the program from the release tab, or compile it yourself.
 
-Then place the file in `~/.local/bin` (or path or whatever you use)
+Then place the file in either:
+```sh
+~/.local/bin
+/usr/share/bin
+```
+as long as the file is recognised by `$PATH`, and can be ran as `wayclick`. Additionally, just run the file directly all the time.
 
+### Package Managers
 There is not yet any official support for package managers.
 
 ### Versions
@@ -18,9 +24,9 @@ This is the full version of the application, contains everything and is the reco
 This contains the clicker, and a UI to edit the config files alongside it.
 
 #### Wayclick lite
-This version contains the minimum amount of things require to autoclick.
+This version contains the minimum amount of things require to autoclick. Hence things like a settings UI are excluded. This version is both way lighter (memory) and smaller file size, however it does leave config to only `settings.json`
 
-Hence things like a settings UI are excluded. This version is both way lighter (memory) and smaller file size, however it does leave config to only `settings.json`
+Note that the network feature set is built-in for convenience. In a future update you'll need to compile from source to remove this feature.
 
 ## Usage
 To run the program, open the file.
@@ -48,6 +54,7 @@ Wayland and global shortcuts are in a bit of a weird state currently *which i'm 
 - Autoclicker
 - Settings UI
 - Profile Management (settings file only)
+- Update checking (no auto updating)
 
 ### Planned
 - Macro editor (in full)
