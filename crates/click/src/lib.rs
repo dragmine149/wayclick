@@ -82,33 +82,31 @@ pub fn daemon_start(profile: Option<String>) {
     let data = Settings::load().get_profile(profile);
 
     if data.notification.started {
-        Notification::new()
+        _ = Notification::new()
             .summary("Wayclick")
             .body("Autoclicker started")
-            .show()
-            .unwrap();
+            .show();
     }
     let file = obtain_lock();
     write_pid(&file);
 
     // graceful shutdown on SIGTERM
-    let mut enigo = Enigo::new(&enigo::Settings::default()).unwrap();
+    let mut enigo =
+        Enigo::new(&enigo::Settings::default()).expect("Failed to set up enigo. Can't autoclick");
     println!("Daemon running… press Ctrl-C or send SIGTERM to stop.");
 
     let initial_timeout = Duration::from_secs(data.initial);
 
     let mut notification = if data.notification.active {
-        Some(
-            Notification::new()
-                .summary("Wayclick")
-                .body(&format!(
-                    "Starting autoclicking in {} seconds",
-                    data.initial
-                ))
-                .timeout(initial_timeout)
-                .show()
-                .unwrap(),
-        )
+        Notification::new()
+            .summary("Wayclick")
+            .body(&format!(
+                "Starting autoclicking in {} seconds",
+                data.initial
+            ))
+            .timeout(initial_timeout)
+            .show()
+            .ok()
     } else {
         None
     };
@@ -122,13 +120,11 @@ pub fn daemon_start(profile: Option<String>) {
     while running.load(Ordering::SeqCst) {
         thread::sleep(Duration::from_millis(data.delay));
         if let Some(pos) = data.position {
-            enigo
-                .move_mouse(pos.0 as i32, pos.1 as i32, enigo::Coordinate::Abs)
-                .unwrap();
+            _ = enigo.move_mouse(pos.0 as i32, pos.1 as i32, enigo::Coordinate::Abs);
         }
         enigo
             .button(enigo::Button::Left, enigo::Direction::Click)
-            .unwrap();
+            .expect("Failed to click, stopping immediately");
         // enigo.button(enigo::Button::Left, enigo::Direction::)
         // enigo
         //     .key(enigo::Key::Shift, enigo::Direction::Press)
@@ -139,11 +135,10 @@ pub fn daemon_start(profile: Option<String>) {
         let _ = notification.update();
     }
     if data.notification.stopped {
-        Notification::new()
+        _ = Notification::new()
             .summary("Wayclick")
             .body("Autoclicker stopped")
-            .show()
-            .unwrap();
+            .show();
     }
 
     println!("Daemon stopping…");
