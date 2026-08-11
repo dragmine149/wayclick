@@ -79,12 +79,15 @@ pub fn daemon_start(profile: Option<String>) {
         r.store(false, Ordering::SeqCst);
     })
     .expect("Error setting Ctrl-C handler");
+    let data = Settings::load().get_profile(profile);
 
-    Notification::new()
-        .summary("Wayclick")
-        .body("Autoclicker is loading")
-        .show()
-        .unwrap();
+    if data.notification.started {
+        Notification::new()
+            .summary("Wayclick")
+            .body("Autoclicker started")
+            .show()
+            .unwrap();
+    }
     let file = obtain_lock();
     write_pid(&file);
 
@@ -92,22 +95,29 @@ pub fn daemon_start(profile: Option<String>) {
     let mut enigo = Enigo::new(&enigo::Settings::default()).unwrap();
     println!("Daemon running… press Ctrl-C or send SIGTERM to stop.");
 
-    let data = Settings::load().get_profile(profile);
     let initial_timeout = Duration::from_secs(data.initial);
 
-    let mut notification = Notification::new()
-        .summary("Wayclick")
-        .body(&format!(
-            "Starting autoclicking in {} seconds",
-            data.initial
-        ))
-        .timeout(initial_timeout)
-        .show()
-        .unwrap();
+    let mut notification = if data.notification.active {
+        Some(
+            Notification::new()
+                .summary("Wayclick")
+                .body(&format!(
+                    "Starting autoclicking in {} seconds",
+                    data.initial
+                ))
+                .timeout(initial_timeout)
+                .show()
+                .unwrap(),
+        )
+    } else {
+        None
+    };
 
     thread::sleep(initial_timeout);
-    notification.body("Autoclicking...").timeout(0);
-    let _ = notification.update();
+    if let Some(notification) = notification.as_mut() {
+        notification.body("Autoclicking...").timeout(0);
+        let _ = notification.update();
+    }
 
     while running.load(Ordering::SeqCst) {
         thread::sleep(Duration::from_millis(data.delay));
@@ -124,8 +134,18 @@ pub fn daemon_start(profile: Option<String>) {
         //     .key(enigo::Key::Shift, enigo::Direction::Press)
         //     .unwrap();
     }
-    notification.body("Autoclicking finished").timeout(2);
-    let _ = notification.update();
+    if let Some(notification) = notification.as_mut() {
+        notification.timeout(1);
+        let _ = notification.update();
+    }
+    if data.notification.stopped {
+        Notification::new()
+            .summary("Wayclick")
+            .body("Autoclicker stopped")
+            .show()
+            .unwrap();
+    }
+
     println!("Daemon stopping…");
     file.set_len(0).unwrap()
 }

@@ -16,6 +16,26 @@ pub enum MouseButton {
     Forward,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NotificationSetting {
+    /// Send a notification upon starting the autoclicker
+    pub started: bool,
+    /// The notification that stays active whilst the autoclicker is running
+    pub active: bool,
+    /// Send a notification when stopping the autoclicker.
+    pub stopped: bool,
+}
+
+impl Default for NotificationSetting {
+    fn default() -> Self {
+        Self {
+            started: false,
+            active: true,
+            stopped: false,
+        }
+    }
+}
+
 /// Information about a specific profile.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Profile {
@@ -29,6 +49,8 @@ pub struct Profile {
     pub delay: u64,
     /// Where to click on the screen.
     pub position: Option<(u16, u16)>,
+    /// What to do about notifications Format: (start, active, stop)
+    pub notification: NotificationSetting,
 }
 
 impl Default for Profile {
@@ -39,6 +61,7 @@ impl Default for Profile {
             initial: 0,
             delay: 100,
             position: None,
+            notification: NotificationSetting::default(),
         }
     }
 }

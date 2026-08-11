@@ -6,6 +6,7 @@ use gpui::{
 use gpui_component::{
     Disableable, Root, WindowExt,
     button::{Button, ButtonVariants},
+    checkbox::Checkbox,
     h_flex,
     input::{InputEvent, InputState, NumberInput},
     menu::{DropdownMenu, PopupMenuItem},
@@ -291,6 +292,52 @@ impl Render for Home {
 
                                     cx.notify();
                                 })),
+                        ),
+                    )
+                    .child(
+                        section("Notification", cx).child(
+                            v_flex()
+                                .child("When to show notifications. Hover for more info")
+                                .child(
+                                    Checkbox::new("start")
+                                        .label("Started")
+                                        .checked(profile.notification.started)
+                                        .tooltip(
+                                            "Show a notification when the autoclicker is started.",
+                                        )
+                                        .on_click(cx.listener(|view, state, _, cx| {
+                                            view.update_settings(
+                                                |profile| profile.notification.started = *state,
+                                                cx,
+                                            );
+                                        })),
+                                ).child(
+                                    Checkbox::new("active")
+                                        .label("Active")
+                                        .checked(profile.notification.active)
+                                        .tooltip(
+                                            "Show a persistent notification whilst the autoclicker is active. Will auto-remove after autoclicking finished.",
+                                        )
+                                        .on_click(cx.listener(|view, state, _, cx| {
+                                            view.update_settings(
+                                                |profile| profile.notification.active = *state,
+                                                cx,
+                                            );
+                                        })),
+                                ).child(
+                                    Checkbox::new("stop")
+                                        .label("Stopped")
+                                        .checked(profile.notification.stopped)
+                                        .tooltip(
+                                            "Show a notification when the autoclicker has stopped.",
+                                        )
+                                        .on_click(cx.listener(|view, state, _, cx| {
+                                            view.update_settings(
+                                                |profile| profile.notification.stopped = *state,
+                                                cx,
+                                            );
+                                        })),
+                                ),
                         ),
                     ),
             )
