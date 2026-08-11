@@ -7694,7 +7694,7 @@ dependencies = [
 
 [[package]]
 name = "wayclick"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "dirs",
@@ -7708,7 +7708,7 @@ dependencies = [
 
 [[package]]
 name = "wayclick_click"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "ctrlc",
  "dirs",
@@ -7720,7 +7720,7 @@ dependencies = [
 
 [[package]]
 name = "wayclick_frontend"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-channel",
@@ -7740,7 +7740,7 @@ dependencies = [
 
 [[package]]
 name = "wayclick_schema"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "dirs",
  "serde",

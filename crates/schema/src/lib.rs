@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    fs::{create_dir_all, read, write},
-    path::PathBuf,
+    fs::{create_dir_all, write},
+    path::{Path, PathBuf},
     sync::mpsc::Receiver,
 };
 use strum_macros::{Display, EnumIter};
@@ -43,7 +43,7 @@ impl Default for Profile {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Settings {
     /// List of all profiles
     pub profiles: HashMap<String, Profile>,
@@ -55,6 +55,18 @@ pub struct Settings {
     pub active_theme: String,
 }
 
+impl Default for Settings {
+    fn default() -> Self {
+        let mut default_hash = HashMap::new();
+        default_hash.insert("default".to_string(), Profile::default());
+        Self {
+            profiles: default_hash,
+            default_profile: "default".to_string(),
+            active_theme: "".to_string(),
+        }
+    }
+}
+
 impl Settings {
     /// Load the data from the file.
     ///
@@ -62,9 +74,7 @@ impl Settings {
     /// If we don't have the dir, create one.
     /// If we failed to create something, don't care not our issue to deal with.
     pub fn load() -> Self {
-        let path = dir().join("Settings.json");
-        let data = read(path).expect("Failed to read data from Settings.json");
-        serde_json::from_slice(&data).expect("Json data got maulformed. Please fix.")
+        try_read_json(&dir().join("Settings.json"))
     }
 
     /// Save the settings to disk.
@@ -112,6 +122,15 @@ impl Settings {
                 )
             })
     }
+}
+
+pub(crate) fn try_read_json<T: std::fmt::Debug + Default + for<'de> Deserialize<'de>>(
+    path: &Path,
+) -> T {
+    let Ok(data) = std::fs::read(path) else {
+        return T::default();
+    };
+    serde_json::from_slice(&data).unwrap_or_default()
 }
 
 pub fn dir() -> PathBuf {
