@@ -17,7 +17,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
     },
     thread,
-    time::Duration,
+    time::{Duration, Instant},
 };
 use wayclick_schema::Settings;
 
@@ -117,14 +117,17 @@ pub fn daemon_start(profile: Option<String>) {
         let _ = notification.update();
     }
 
+    let delay = Duration::from_millis(data.delay);
+    let mut next = Instant::now() + delay;
     while running.load(Ordering::SeqCst) {
-        thread::sleep(Duration::from_millis(data.delay));
+        thread::sleep(next.saturating_duration_since(Instant::now()));
         if let Some(pos) = data.position {
             _ = enigo.move_mouse(pos.0 as i32, pos.1 as i32, enigo::Coordinate::Abs);
         }
         enigo
             .button(enigo::Button::Left, enigo::Direction::Click)
             .expect("Failed to click, stopping immediately");
+        next += delay;
         // enigo.button(enigo::Button::Left, enigo::Direction::)
         // enigo
         //     .key(enigo::Key::Shift, enigo::Direction::Press)
