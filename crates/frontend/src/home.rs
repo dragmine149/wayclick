@@ -103,6 +103,11 @@ impl Home {
 
         thread_to_main(cx, data.rx, async move |this, cx, rx| {
             let response = rx.recv().await.unwrap();
+            let response = match response {
+                Ok(v) => v,
+                Err(e) => {_=Self::weak_notify(&this, Notification::new().title("Failed to fetch update information").message(e), cx); return;},
+            };
+
             let res = response.clone();
             let new = response.version;
             let current = env!("CARGO_PKG_VERSION");

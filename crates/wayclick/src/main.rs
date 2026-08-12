@@ -10,8 +10,7 @@ use wayclick_schema::dir;
 pub(crate) mod cli;
 pub(crate) mod network;
 
-#[tokio::main]
-pub async fn main() {
+pub fn main() {
     let commands = Cli::parse();
 
     if let Some(sub) = commands.command {
@@ -32,17 +31,19 @@ pub async fn main() {
     }
 
     // only check for version update if requested or running the UI
-    let (tx, rx) = std::sync::mpsc::channel::<ServerResponse>();
+    let (tx, rx) = std::sync::mpsc::channel::<Result<ServerResponse, String>>();
     let join = network::check_update(tx);
 
     if commands.version {
         println!(
             "Current version: {}. Latest version: {}\nGithub: https://github.com/dragmine149/wayclick/releases/latest",
             env!("CARGO_PKG_VERSION"),
-            rx.recv()
-                .map_or_else(|_| "Failed to fetch".to_string(), |v| v.version)
+            rx.recv().map_or_else(
+                |_| "Failed to fetch".to_string(),
+                |v| v.map_or_else(|e| e, |v| v.version)
+            )
         );
-        return join.await.unwrap();
+        return join.join().expect("Failed to join how??");
     }
 
     #[cfg(feature = "ui")]

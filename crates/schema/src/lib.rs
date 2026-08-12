@@ -172,5 +172,5 @@ pub struct ServerResponse {
 ///
 /// Use this for stuff like [std::sync::mpsc::channel] for sending data between threads.
 pub struct TransferData {
-    pub rx: Receiver<ServerResponse>,
+    pub rx: Receiver<Result<ServerResponse, String>>,
 }
