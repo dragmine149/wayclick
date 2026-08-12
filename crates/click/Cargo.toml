@@ -6,7 +6,7 @@ edition.workspace = true
 [dependencies]
 ctrlc = { version = "3.5.2", features = ["termination"] }
 dirs.workspace = true
-enigo = { version = "0.6.1", features = ["serde", "wayland"], default-features = false }
+enigo = { version = "0.6.1", features = ["serde", "wayland", "libei_smol"], default-features = false }
 # Provides ability to talk to the other instances.
 nix = { version = "0.31.3", features = ["fs", "signal"] }
 # system-notifications

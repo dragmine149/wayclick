@@ -11,6 +11,9 @@ pub(crate) mod cli;
 pub(crate) mod network;
 
 pub fn main() {
+    #[cfg(feature = "log")]
+    env_logger::init();
+
     let commands = Cli::parse();
 
     if let Some(sub) = commands.command {

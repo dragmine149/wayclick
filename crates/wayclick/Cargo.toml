@@ -16,9 +16,12 @@ wayclick_frontend = {
   optional = true,
 }
 wayclick_schema.workspace = true
+env_logger = {version="0.11.11", optional=true}
+
 
 [features]
 default = ["full"]
 full = ["macros", "ui"]
 macros = []
 ui = ["dep:wayclick_frontend"]
+log = ["dep:env_logger"]
