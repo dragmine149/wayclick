@@ -9,15 +9,10 @@ async-channel = "2.5.0"
 dirs.workspace = true
 gpui = { git = "https://github.com/zed-industries/zed" }
 gpui-component = { git = "https://github.com/longbridge/gpui-component.git" }
-gpui-component-assets = {
-  git = "https://github.com/longbridge/gpui-component.git"
-}
-gpui_platform = {
-  git = "https://github.com/zed-industries/zed",
-  features = ["font-kit", "runtime_shaders", "wayland"]
-}
+gpui-component-assets = { git = "https://github.com/longbridge/gpui-component.git" }
+gpui_ext = { git = "https://github.com/dragmine149/gpuiExt", branch = "git" }
+gpui_platform = { git = "https://github.com/zed-industries/zed", features = ["font-kit", "runtime_shaders", "wayland"] }
 rand.workspace = true
-rust-embed = "8.12.0"
 serde.workspace = true
 serde_json.workspace = true
 strum.workspace = true

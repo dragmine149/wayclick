@@ -1,4 +1,4 @@
-use crate::writer::{Save, Writer};
+use gpui_ext::{Writer, writer::Save};
 use wayclick_schema::{Profile, Settings};
 
 impl Writer for Settings {

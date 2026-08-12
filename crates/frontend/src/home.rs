@@ -1,13 +1,12 @@
-use crate::{section, thread_to_main, writer::Writer};
 use gpui::{
-    AnyWindowHandle, App, AppContext, AsyncApp, BorrowAppContext, Context, Entity, IntoElement,
-    ParentElement, Render, Styled, Subscription, WeakEntity, Window, div,
+    App, AppContext, Context, Entity, IntoElement, ParentElement, Render, Styled, Subscription,
+    Window, div,
 };
 use gpui_component::{
     Disableable, Root, WindowExt,
     button::{Button, ButtonVariants},
     checkbox::Checkbox,
-    dialog::{Dialog, DialogFooter, DialogHeader, DialogTitle},
+    dialog::{DialogFooter, DialogHeader, DialogTitle},
     h_flex,
     input::{InputEvent, InputState, NumberInput},
     menu::{DropdownMenu, PopupMenuItem},
@@ -16,6 +15,7 @@ use gpui_component::{
     text::markdown,
     v_flex,
 };
+use gpui_ext::{notify::WeakNotify, section, thread_to_main};
 use strum::IntoEnumIterator;
 use wayclick_schema::{Profile, Settings, TransferData};
 
@@ -28,10 +28,9 @@ pub struct Home {
     x_pos: Entity<InputState>,
     y_pos: Entity<InputState>,
     _subscriptions: Vec<Subscription>,
-    main_window: AnyWindowHandle,
 }
 
-impl Home {}
+impl WeakNotify for Home {}
 
 impl Home {
     pub fn view(window: &mut Window, cx: &mut App, data: TransferData) -> Entity<Self> {
@@ -196,33 +195,11 @@ impl Home {
                 is
             }),
             _subscriptions: subscriptions,
-            main_window: window.window_handle(),
         }
     }
 }
 
 impl Home {
-    /// even even more shorthand for notification.
-    ///
-    /// # Usage
-    /// ```rs
-    /// let _ = Self::weak_notify(this, Notification::new(), cx);
-    /// ```
-    fn weak_notify(
-        this: &WeakEntity<Self>,
-        notification: Notification,
-        cx: &mut AsyncApp,
-    ) -> anyhow::Result<()> {
-        this.update(cx, |this, cx| this.notify(notification, cx))?
-    }
-
-    /// Shorthand for notification, saves repeating it a bit.
-    fn notify(&mut self, notification: Notification, cx: &mut Context<Self>) -> anyhow::Result<()> {
-        cx.update_window(self.main_window, |_, win, cx| {
-            win.push_notification(notification, cx);
-        })
-    }
-
     fn update_settings<F>(&self, update_fn: F, cx: &mut Context<Self>)
     where
         F: Fn(&mut Profile),
