@@ -1,5 +1,6 @@
 use crate::{home::Home, writer::Writer};
 use anyhow::anyhow;
+use async_channel::RecvError;
 use gpui::{
     App, AppContext, AssetSource, AsyncApp, Context, Entity, Global, KeyBinding, Length,
     ParentElement, SharedString, StyleRefinement, Styled, Task, TitlebarOptions, WeakEntity,
@@ -101,16 +102,15 @@ where
 {
     println!("Setup connections");
     let (tx, rx) = async_channel::unbounded::<T>();
+    // this should be a one-time thing...
     cx.background_spawn(async move {
-        loop {
-            tx.send(
-                receiver
-                    .recv()
-                    .unwrap_or_else(|err| panic!("Failed to get receiver message {}", err)),
-            )
-            .await
-            .expect("Failed to send receiver message");
-        }
+        tx.send(
+            receiver
+                .recv()
+                .unwrap_or_else(|err| panic!("Failed to get receiver message {}", err)),
+        )
+        .await
+        .expect("Failed to send receiver message");
     })
     .detach();
 
