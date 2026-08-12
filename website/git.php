@@ -213,12 +213,13 @@ class Repo
 
     function fetch_changelog()
     {
+        $release = $this->github
+            ->set_url('https://api.github.com/repos/dragmine149/wayclick/releases/latest')
+            ->execute()
+            ->json();
         Network::json(200, [
-            'release_notes' => $this->github
-                ->set_url('https://api.github.com/repos/dragmine149/wayclick/releases/latest')
-                ->execute()
-                ->json()
-                ->body,
+            'release_notes' => $release->body,
+            'version' => $release->tag_name,
         ]);
     }
 }

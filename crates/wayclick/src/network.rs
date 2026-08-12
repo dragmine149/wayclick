@@ -4,7 +4,7 @@ use wayclick_schema::ServerResponse;
 pub fn check_update(tx: Sender<ServerResponse>) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
         let resp = reqwest::Client::new()
-            .get("https://wayclick.dragmine.me/version.json")
+            .get("https://wayclick.dragmine.me/git.php/changelog")
             .header(
                 "User-Agent",
                 format!("wayclick {}", env!("CARGO_PKG_VERSION")),

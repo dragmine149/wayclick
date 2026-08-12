@@ -162,9 +162,10 @@ pub fn dir() -> PathBuf {
     dir
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ServerResponse {
     pub version: String,
+    pub release_notes: String,
 }
 
 /// Additional data to transfer into the application.

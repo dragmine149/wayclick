@@ -1,17 +1,19 @@
 use crate::{section, thread_to_main, writer::Writer};
 use gpui::{
-    AnyWindowHandle, App, AppContext, AsyncApp, Context, Entity, IntoElement, ParentElement,
-    Render, Styled, Subscription, WeakEntity, Window, div,
+    AnyWindowHandle, App, AppContext, AsyncApp, BorrowAppContext, Context, Entity, IntoElement,
+    ParentElement, Render, Styled, Subscription, WeakEntity, Window, div,
 };
 use gpui_component::{
     Disableable, Root, WindowExt,
     button::{Button, ButtonVariants},
     checkbox::Checkbox,
+    dialog::{Dialog, DialogFooter, DialogHeader, DialogTitle},
     h_flex,
     input::{InputEvent, InputState, NumberInput},
     menu::{DropdownMenu, PopupMenuItem},
     notification::Notification,
     radio::{Radio, RadioGroup},
+    text::markdown,
     v_flex,
 };
 use strum::IntoEnumIterator;
@@ -100,21 +102,61 @@ impl Home {
         ];
 
         thread_to_main(cx, data.rx, async move |this, cx, rx| {
-            let new = rx.recv().await.unwrap().version;
+            let response = rx.recv().await.unwrap();
+            let res = response.clone();
+            let new = response.version;
             let current = env!("CARGO_PKG_VERSION");
             if new != current {
                 _ = Self::weak_notify(
                     &this,
                     Notification::new()
                         .title("Update Available")
-                        .message(format!("New version: {new}. Current version: {current}"))
+                        .message(format!("New version: {}. Current version: {current}", &new))
                         .autohide(false)
-                        .action(|_, _, cx| {
-                            Button::new("Open github")
-                                .primary()
-                                .label("Open Github")
-                                .on_click(cx.listener(|this, _, window, cx| {
-                                    cx.open_url("https://wayclick.dragmine.me");
+                        .action(move |_, _, cx| {
+                            let res = res.clone();
+                            Button::new("View changelog")
+                                .secondary()
+                                .label("View Changelog")
+                                .on_click(cx.listener(move |this, _, window, cx| {
+                                    let res = res.clone();
+                                    window.open_dialog(cx, move |dialog, _, _| {
+                                        let res = res.clone();
+                                        dialog.content(move |content, _, _| {
+                                            content
+                                                .child(DialogHeader::new().child(
+                                                    DialogTitle::new().child(format!(
+                                                        "Changelog for {}",
+                                                        res.version
+                                                    )),
+                                                ))
+                                                .child(markdown(&res.release_notes))
+                                                .child(
+                                                    DialogFooter::new()
+                                                        .justify_center()
+                                                        .child(
+                                                            Button::new("close")
+                                                                .flex()
+                                                                .outline()
+                                                                .label("Update Later")
+                                                                .on_click(|_, window, cx| {
+                                                                    window.close_dialog(cx)
+                                                                }),
+                                                        )
+                                                        .child(
+                                                            Button::new("Open Github")
+                                                                .flex_1()
+                                                                .primary()
+                                                                .label("Open Github")
+                                                                .on_click(|_, window, cx| {
+                                                                    window.close_dialog(cx);
+                                                                    cx.open_url("https://wayclick.dragmine.me");
+                                                                }),
+                                                        ),
+                                                )
+                                        })
+                                    });
+                                    println!("Viewing changelog");
                                     this.dismiss(window, cx);
                                 }))
                         }),
@@ -207,6 +249,7 @@ impl Home {
 impl Render for Home {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let notification_layer = Root::render_notification_layer(window, cx);
+        let dialog_layer = Root::render_dialog_layer(window, cx);
 
         let view = cx.entity();
         let profile = Settings::get(cx).get_default_profile();
@@ -463,5 +506,6 @@ impl Render for Home {
                 ),
             )
             .children(notification_layer)
+            .children(dialog_layer)
     }
 }
