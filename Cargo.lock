@@ -2665,8 +2665,8 @@ dependencies = [
 
 [[package]]
 name = "gpui_ext"
-version = "0.1.0"
-source = "git+https://github.com/dragmine149/gpuiExt?branch=git#468a11a689fc4caaec5e6ce51ee3812448d07d7c"
+version = "0.1.0-pre1"
+source = "git+https://github.com/dragmine149/gpuiExt?branch=git#395735433b25671de271179e34f823cbf8502256"
 dependencies = [
  "anyhow",
  "async-channel",

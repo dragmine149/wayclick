@@ -1,9 +1,10 @@
 use crate::home::Home;
+use crate::writer::config::Settings;
 use gpui::{AppContext, KeyBinding, SharedString, TitlebarOptions, WindowOptions, actions};
 use gpui_component::Root;
-use gpui_ext::load_theme;
+use gpui_ext::{Writer, load_theme};
 use std::{fs, path::PathBuf};
-use wayclick_schema::{Settings, TransferData};
+use wayclick_schema::TransferData;
 pub(crate) mod home;
 pub(crate) mod writer;
 

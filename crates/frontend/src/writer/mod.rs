@@ -1,8 +1,7 @@
-use gpui::{App, Global, Task};
-use rand::RngExt;
-use serde::{Deserialize, Serialize};
-use std::{io::Write, path::Path, sync::Arc, time::Duration};
-use wayclick_schema::Settings;
+use crate::writer::config::Settings;
+use gpui::App;
+use gpui_ext::Writer;
+use std::path::Path;
 
 pub mod config;
 

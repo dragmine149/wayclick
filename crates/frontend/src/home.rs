@@ -1,3 +1,4 @@
+use crate::writer::config::Settings;
 use gpui::{
     App, AppContext, Context, Entity, IntoElement, ParentElement, Render, Styled, Subscription,
     Window, div,
@@ -15,9 +16,9 @@ use gpui_component::{
     text::markdown,
     v_flex,
 };
-use gpui_ext::{notify::WeakNotify, section, thread_to_main};
+use gpui_ext::{Writer, notify::WeakNotify, section, thread_to_main};
 use strum::IntoEnumIterator;
-use wayclick_schema::{Profile, Settings, TransferData};
+use wayclick_schema::{Profile, TransferData};
 
 pub struct Home {
     hour: Entity<InputState>,
