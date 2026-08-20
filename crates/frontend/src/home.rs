@@ -15,7 +15,7 @@ use gpui_component::{
     text::markdown,
     v_flex,
 };
-use gpui_ext::{Writer, notify::WeakNotify, section, thread_to_main};
+use gpui_ext::{Writer, notify::WeakNotify, section, thread_to_main, thread_to_main_oneshot};
 use strum::IntoEnumIterator;
 use wayclick_schema::{NotificationOption, Profile, TransferData};
 
@@ -100,7 +100,7 @@ impl Home {
             }),
         ];
 
-        thread_to_main(cx, data.rx, async move |this, cx, rx| {
+        thread_to_main_oneshot(cx, data.rx, async move |this, cx, rx| {
             let response = rx.recv().await.unwrap();
             let response = match response {
                 Ok(v) => v,
