@@ -15,7 +15,7 @@ use gpui_component::{
     text::markdown,
     v_flex,
 };
-use gpui_ext::{Writer, notify::WeakNotify, section, thread_to_main, thread_to_main_oneshot};
+use gpui_ext::{Writer, notify::WeakNotify, section, thread_to_main_oneshot};
 use strum::IntoEnumIterator;
 use wayclick_schema::{NotificationOption, Profile, TransferData};
 
@@ -451,7 +451,7 @@ impl Render for Home {
                                             .child(
                                                 Button::new("Set")
                                                     .disabled(true)
-                                                    .tooltip("Currently disabled due to issues with wayland. Requires a bit more research before reimplementation.")
+                                                    .tooltip("Currently disabled due to issues with wayland.")
                                                     .label("Set to current Position")
                                                     .on_click(cx.listener(
                                                         |this, _, window, cx| {
@@ -520,11 +520,12 @@ impl Render for Home {
                 section("Controls", cx).h_10().child(
                     h_flex()
                         .h_full()
+                        .p_2()
                         .child(
                             Button::new("start")
-                                .p_2()
+                                .p_5()
                                 .label("Start")
-                                .h_3()
+                                .size_20()
                                 .disabled(wayclick_click::is_clicking())
                                 .on_click(|_, _, _| {
                                     wayclick_click::start_subprocess();
@@ -532,9 +533,9 @@ impl Render for Home {
                         )
                         .child(
                             Button::new("stop")
-                                .p_2()
+                                .p_5()
                                 .label("stop")
-                                .h_3()
+                                .size_20()
                                 .disabled(!wayclick_click::is_clicking())
                                 .on_click(|_, _, _| {
                                     wayclick_click::daemon_stop();
