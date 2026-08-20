@@ -2,10 +2,11 @@ use crate::home::Home;
 use crate::writer::config::Settings;
 use gpui::{AppContext, KeyBinding, SharedString, TitlebarOptions, WindowOptions, actions};
 use gpui_component::Root;
-use gpui_ext::{Writer, load_theme};
+use gpui_ext::{GPUIStructHelper, Writer, load_theme};
 use std::{fs, path::PathBuf};
 use wayclick_schema::TransferData;
 pub(crate) mod home;
+pub(crate) mod sections;
 pub(crate) mod writer;
 
 actions!([Quit]);
@@ -65,7 +66,7 @@ pub fn main(config_dir: PathBuf, data: TransferData) {
                     ..Default::default()
                 },
                 |window, cx| {
-                    let home = Home::view(window, cx, data);
+                    let home = Home::view(window, cx, Some(data));
                     cx.new(|cx| Root::new(home, window, cx))
                 },
             )

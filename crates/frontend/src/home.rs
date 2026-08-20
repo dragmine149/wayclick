@@ -1,110 +1,45 @@
-use crate::writer::config::Settings;
-use gpui::{
-    App, AppContext, Context, Entity, IntoElement, ParentElement, Render, Styled, Subscription,
-    Window, div,
+use crate::sections::{
+    button::MouseButton, controls::Controls, delay::Delay, notification::NotificationUI,
+    position::Position, repeat::Repeat,
 };
+use gpui::{Context, Entity, IntoElement, ParentElement, Render, Styled, Window, div};
 use gpui_component::{
-    Disableable, Root, WindowExt,
+    Root, WindowExt,
     button::{Button, ButtonVariants},
     dialog::{DialogFooter, DialogHeader, DialogTitle},
     h_flex,
-    input::{InputEvent, InputState, NumberInput},
-    menu::{DropdownMenu, PopupMenuItem},
     notification::Notification,
-    radio::{Radio, RadioGroup},
     text::markdown,
-    v_flex,
 };
-use gpui_ext::{Writer, notify::WeakNotify, section, thread_to_main_oneshot};
-use strum::IntoEnumIterator;
-use wayclick_schema::{NotificationOption, Profile, TransferData};
+use gpui_ext::{GPUIStructHelper, notify::WeakNotify, thread_to_main_oneshot};
+use wayclick_schema::{ServerResponse, TransferData};
 
 pub struct Home {
-    hour: Entity<InputState>,
-    mins: Entity<InputState>,
-    secs: Entity<InputState>,
-    mili: Entity<InputState>,
-    repeat: Entity<InputState>,
-    x_pos: Entity<InputState>,
-    y_pos: Entity<InputState>,
-    _subscriptions: Vec<Subscription>,
+    delay: Entity<Delay>,
+    mouse_button: Entity<MouseButton>,
+    repeat: Entity<Repeat>,
+    notification: Entity<NotificationUI>,
+    position: Entity<Position>,
+    controls: Entity<Controls>,
 }
 
 impl WeakNotify for Home {}
-
-impl Home {
-    pub fn view(window: &mut Window, cx: &mut App, data: TransferData) -> Entity<Self> {
-        cx.new(|cx| Self::new(window, cx, data))
-    }
-    fn new(window: &mut Window, cx: &mut Context<Self>, data: TransferData) -> Self {
-        let profile = Settings::get(cx).get_default_profile();
-        let ms = profile.delay;
-        let hour = ms / 3_600_000;
-        let min = (ms % 3_600_000) / 60_000;
-        let sec = (ms % 3_600_000 % 60_000) / 1000;
-        let ms = ms % 3_600_000 % 60_000 % 1000;
-
-        let hour = cx.new(|cx| {
-            let mut is = InputState::new(window, cx)
-                .placeholder("hours")
-                .validate(|v, _| v.parse::<u64>().is_ok_and(|v| v <= 24))
-                .default_value("0");
-            is.set_value(hour.to_string(), window, cx);
-            is
-        });
-        let mins = cx.new(|cx| {
-            let mut is = InputState::new(window, cx)
-                .placeholder("minutes")
-                .validate(|v, _| v.parse::<u64>().is_ok_and(|v| v <= 60))
-                .default_value("0");
-            is.set_value(min.to_string(), window, cx);
-            is
-        });
-        let secs = cx.new(|cx| {
-            let mut is = InputState::new(window, cx)
-                .placeholder("seconds")
-                .validate(|v, _| v.parse::<u64>().is_ok_and(|v| v <= 60))
-                .default_value("0");
-            is.set_value(sec.to_string(), window, cx);
-            is
-        });
-        let mili = cx.new(|cx| {
-            let mut is = InputState::new(window, cx)
-                .placeholder("milliseconds")
-                .validate(|v, _| v.parse::<u64>().is_ok_and(|v| v <= 1000))
-                .default_value("100");
-            is.set_value(ms.to_string(), window, cx);
-            is
-        });
-
-        let subscriptions = vec![
-            cx.subscribe(&hour, |v, _, e: &InputEvent, cx| {
-                if matches!(e, InputEvent::Change) {
-                    v.update_delay(cx)
-                }
-            }),
-            cx.subscribe(&mins, |v, _, e: &InputEvent, cx| {
-                if matches!(e, InputEvent::Change) {
-                    v.update_delay(cx)
-                }
-            }),
-            cx.subscribe(&secs, |v, _, e: &InputEvent, cx| {
-                if matches!(e, InputEvent::Change) {
-                    v.update_delay(cx)
-                }
-            }),
-            cx.subscribe(&mili, |v, _, e: &InputEvent, cx| {
-                if matches!(e, InputEvent::Change) {
-                    v.update_delay(cx)
-                }
-            }),
-        ];
-
-        thread_to_main_oneshot(cx, data.rx, async move |this, cx, rx| {
+impl GPUIStructHelper<TransferData> for Home {
+    fn new(window: &mut Window, cx: &mut Context<Self>, data: Option<TransferData>) -> Self {
+        thread_to_main_oneshot(cx, data.unwrap().rx, async |this, cx, rx| {
             let response = rx.recv().await.unwrap();
             let response = match response {
                 Ok(v) => v,
-                Err(e) => {_=Self::weak_notify(&this, Notification::new().title("Failed to fetch update information").message(e), cx); return;},
+                Err(e) => {
+                    _ = Self::weak_notify(
+                        &this,
+                        Notification::new()
+                            .title("Failed to fetch update information")
+                            .message(e),
+                        cx,
+                    );
+                    return;
+                }
             };
 
             let res = response.clone();
@@ -113,57 +48,7 @@ impl Home {
             if new != current {
                 _ = Self::weak_notify(
                     &this,
-                    Notification::new()
-                        .title("Update Available")
-                        .message(format!("New version: {}. Current version: {current}", &new))
-                        .autohide(false)
-                        .action(move |_, _, cx| {
-                            let res = res.clone();
-                            Button::new("View changelog")
-                                .secondary()
-                                .label("View Changelog")
-                                .on_click(cx.listener(move |this, _, window, cx| {
-                                    let res = res.clone();
-                                    window.open_dialog(cx, move |dialog, _, _| {
-                                        let res = res.clone();
-                                        dialog.content(move |content, _, _| {
-                                            content
-                                                .child(DialogHeader::new().child(
-                                                    DialogTitle::new().child(format!(
-                                                        "Changelog for {}",
-                                                        res.version
-                                                    )),
-                                                ))
-                                                .child(markdown(&res.release_notes))
-                                                .child(
-                                                    DialogFooter::new()
-                                                        .justify_center()
-                                                        .child(
-                                                            Button::new("close")
-                                                                .flex()
-                                                                .outline()
-                                                                .label("Update Later")
-                                                                .on_click(|_, window, cx| {
-                                                                    window.close_dialog(cx)
-                                                                }),
-                                                        )
-                                                        .child(
-                                                            Button::new("Open Github")
-                                                                .flex_1()
-                                                                .primary()
-                                                                .label("Open Github")
-                                                                .on_click(|_, window, cx| {
-                                                                    window.close_dialog(cx);
-                                                                    cx.open_url("https://wayclick.dragmine.me");
-                                                                }),
-                                                        ),
-                                                )
-                                        })
-                                    });
-                                    println!("Viewing changelog");
-                                    this.dismiss(window, cx);
-                                }))
-                        }),
+                    Self::build_update_notification(current, new.as_str(), res.clone()),
                     cx,
                 );
             }
@@ -171,60 +56,75 @@ impl Home {
         .detach();
 
         Self {
-            hour,
-            mins,
-            secs,
-            mili,
-            repeat: cx.new(|cx| {
-                InputState::new(window, cx)
-                    .validate(|v, _| v.parse::<u64>().is_ok_and(|v| v >= 1))
-                    .default_value("1")
-            }),
-            x_pos: cx.new(|cx| {
-                let mut is = InputState::new(window, cx)
-                    .validate(|v, _| v.parse::<u64>().is_ok())
-                    .default_value("0");
-                is.set_value(profile.position.map_or(0, |v| v.0).to_string(), window, cx);
-                is
-            }),
-            y_pos: cx.new(|cx| {
-                let mut is = InputState::new(window, cx)
-                    .validate(|v, _| v.parse::<u64>().is_ok())
-                    .default_value("0");
-                is.set_value(profile.position.map_or(0, |v| v.1).to_string(), window, cx);
-                is
-            }),
-            _subscriptions: subscriptions,
+            delay: Delay::view(window, cx, None),
+            mouse_button: MouseButton::view(window, cx, None),
+            repeat: Repeat::view(window, cx, None),
+            notification: NotificationUI::view(window, cx, None),
+            position: Position::view(window, cx, None),
+            controls: Controls::view(window, cx, None),
         }
     }
 }
 
 impl Home {
-    fn update_settings<F>(&self, update_fn: F, cx: &mut Context<Self>)
-    where
-        F: Fn(&mut Profile),
-    {
-        update_fn(Settings::get_mut(cx).get_default_profile_mut())
-    }
-    fn update_delay(&self, cx: &mut Context<Self>) {
-        let h = self
-            .hour
-            .read_with(cx, |v, _| v.value().parse::<u64>())
-            .unwrap();
-        let m = self
-            .mins
-            .read_with(cx, |v, _| v.value().parse::<u64>())
-            .unwrap();
-        let s = self
-            .secs
-            .read_with(cx, |v, _| v.value().parse::<u64>())
-            .unwrap();
-        let ms = self
-            .mili
-            .read_with(cx, |v, _| v.value().parse::<u64>())
-            .unwrap();
-        let time = (h * 3_600_000) + (m * 60_000) + (s * 1000) + ms;
-        self.update_settings(|profile| profile.delay = time, cx);
+    fn build_update_notification(
+        current_ver: &str,
+        new_ver: &str,
+        changelog: ServerResponse,
+    ) -> Notification {
+        Notification::new()
+            .title("Update Available")
+            .message(format!(
+                "New version: {}. Current version: {current_ver}",
+                &new_ver
+            ))
+            .autohide(false)
+            .action(move |_, _, cx| {
+                let changelog = changelog.clone();
+                Button::new("View changelog")
+                    .secondary()
+                    .label("View Changelog")
+                    .on_click(cx.listener(move |this, _, window, cx| {
+                        let changelog = changelog.clone();
+                        window.open_dialog(cx, move |dialog, _, _| {
+                            let changelog = changelog.clone();
+                            dialog.content(move |content, _, _| {
+                                content
+                                    .child(
+                                        DialogHeader::new().child(DialogTitle::new().child(
+                                            format!("Changelog for {}", &changelog.version),
+                                        )),
+                                    )
+                                    .child(markdown(&changelog.release_notes))
+                                    .child(
+                                        DialogFooter::new()
+                                            .justify_center()
+                                            .child(
+                                                Button::new("close")
+                                                    .flex()
+                                                    .outline()
+                                                    .label("Update Later")
+                                                    .on_click(|_, window, cx| {
+                                                        window.close_dialog(cx)
+                                                    }),
+                                            )
+                                            .child(
+                                                Button::new("Open Github")
+                                                    .flex_1()
+                                                    .primary()
+                                                    .label("Open Github")
+                                                    .on_click(|_, window, cx| {
+                                                        window.close_dialog(cx);
+                                                        cx.open_url("https://wayclick.dragmine.me");
+                                                    }),
+                                            ),
+                                    )
+                            })
+                        });
+                        println!("Viewing changelog");
+                        this.dismiss(window, cx);
+                    }))
+            })
     }
 }
 
@@ -233,316 +133,19 @@ impl Render for Home {
         let notification_layer = Root::render_notification_layer(window, cx);
         let dialog_layer = Root::render_dialog_layer(window, cx);
 
-        let view = cx.entity();
-        let viewa = cx.entity();
-        let viewb = cx.entity();
-        let viewc = cx.entity();
-        let profile = Settings::get(cx).get_default_profile();
         div()
             .size_full()
             .p_4()
-            .child(
-                section("Delay", cx).child(
-                    h_flex()
-                        .w_full()
-                        .child(
-                            v_flex()
-                                .w_full()
-                                .child("Hours")
-                                .child(NumberInput::new(&self.hour)),
-                        )
-                        .child(
-                            v_flex()
-                                .w_full()
-                                .child("Minutes")
-                                .child(NumberInput::new(&self.mins)),
-                        )
-                        .child(
-                            v_flex()
-                                .w_full()
-                                .child("Seconds")
-                                .child(NumberInput::new(&self.secs)),
-                        )
-                        .child(
-                            v_flex()
-                                .w_full()
-                                .child("Milliseconds")
-                                .child(NumberInput::new(&self.mili)),
-                        ),
-                ),
-            )
+            .child(self.delay.clone())
             .child(
                 h_flex()
                     .w_full()
-                    .child(
-                        section("Button", cx).child(
-                            Button::new("mouse_button")
-                                .label(format!("{} mouse button", profile.click))
-                                .dropdown_menu(move |mut menu, win, _| {
-                                    for button in wayclick_schema::MouseButton::iter() {
-                                        menu = menu.item(
-                                            PopupMenuItem::new(button.to_string()).on_click(
-                                                win.listener_for(&view, move |this, _, _, cx| {
-                                                    this.update_settings(
-                                                        |profile| {
-                                                            profile.click = button.clone();
-                                                        },
-                                                        cx,
-                                                    );
-                                                }),
-                                            ),
-                                        );
-                                    }
-                                    menu
-                                }),
-                        ),
-                    )
-                    .child(
-                        section("Repeat", cx).child(
-                            RadioGroup::vertical("repeat")
-                                .child("Infinite")
-                                .child(Radio::new("count").label("Specific number").child(
-                                    NumberInput::new(&self.repeat).disabled(profile.repeat == 0),
-                                ))
-                                .selected_index(Some(match profile.repeat == 0 {
-                                    true => 0,
-                                    false => 1,
-                                }))
-                                .on_click(cx.listener(|view, selected_index: &usize, _, cx| {
-                                    let rep_value = match selected_index {
-                                        0 => 0,
-                                        _ => view
-                                            .repeat
-                                            .read_with(cx, |v, _| v.value().parse::<usize>())
-                                            .unwrap(),
-                                    };
-                                    view.update_settings(|profile| profile.repeat = rep_value, cx);
-
-                                    cx.notify();
-                                })),
-                        ),
-                    )
-                    .child(
-                        section("Notification", cx).child(
-                            v_flex()
-                                .child("When to show notifications.")
-                                .child(
-                                    Button::new("start")
-                                        .label(format!(
-                                            "On Start: {}",
-                                            profile.notification.started
-                                        ))
-                                        .dropdown_menu(move |mut menu, win, _| {
-                                            for option in NotificationOption::iter() {
-                                                menu = menu.item(
-                                                    PopupMenuItem::new(option.to_string())
-                                                        .on_click(win.listener_for(
-                                                            &viewa,
-                                                            move |this, _, _, cx| {
-                                                                this.update_settings(
-                                                                    |profile| {
-                                                                        profile
-                                                                            .notification
-                                                                            .started =
-                                                                            option.clone()
-                                                                    },
-                                                                    cx,
-                                                                );
-                                                            },
-                                                        )),
-                                                )
-                                            }
-                                            menu
-                                        }),
-                                )
-                                .child(
-                                    Button::new("active")
-                                        .label(format!("Active: {}", profile.notification.active))
-                                        .dropdown_menu(move |mut menu, win, _| {
-                                            for option in NotificationOption::iter() {
-                                                menu = menu.item(
-                                                    PopupMenuItem::new(option.to_string())
-                                                        .on_click(win.listener_for(
-                                                            &viewb,
-                                                            move |this, _, _, cx| {
-                                                                this.update_settings(
-                                                                    |profile| {
-                                                                        profile
-                                                                            .notification
-                                                                            .active = option.clone()
-                                                                    },
-                                                                    cx,
-                                                                );
-                                                            },
-                                                        )),
-                                                )
-                                            }
-                                            menu
-                                        }),
-                                )
-                                .child(
-                                    Button::new("stop")
-                                        .label(format!(
-                                            "On Stopped: {}",
-                                            profile.notification.stopped
-                                        ))
-                                        .dropdown_menu(move |mut menu, win, _| {
-                                            for option in NotificationOption::iter() {
-                                                menu = menu.item(
-                                                    PopupMenuItem::new(option.to_string())
-                                                        .on_click(win.listener_for(
-                                                            &viewc,
-                                                            move |this, _, _, cx| {
-                                                                this.update_settings(
-                                                                    |profile| {
-                                                                        profile
-                                                                            .notification
-                                                                            .stopped =
-                                                                            option.clone()
-                                                                    },
-                                                                    cx,
-                                                                );
-                                                            },
-                                                        )),
-                                                )
-                                            }
-                                            menu
-                                        }),
-                                )
-                                .child(
-                                    markdown(
-                                        "- None: Don't show the notification at all
-- HistoryTimeout: Send the notification to history after 1 second
-- CloseTimeout: Close the notification after 1 second",
-                                    )
-                                    .pt_2(),
-                                ),
-                        ),
-                    ),
+                    .child(self.mouse_button.clone())
+                    .child(self.repeat.clone())
+                    .child(self.notification.clone()),
             )
-            .child(
-                section("Position", cx).child(
-                    RadioGroup::horizontal("position")
-                        .child("Cursor Position")
-                        .child(
-                            Radio::new("pos").w_full().label("Specific position").child(
-                                h_flex()
-                                    .w_full()
-                                    .child(
-                                        v_flex()
-                                            .p_2()
-                                            .w_full()
-                                            .child(
-                                                NumberInput::new(&self.x_pos)
-                                                    .prefix("x:")
-                                                    .w_full()
-                                                    .disabled(profile.position.is_none()),
-                                            )
-                                            .child(
-                                                NumberInput::new(&self.y_pos)
-                                                    .prefix("y:")
-                                                    .w_full()
-                                                    .disabled(profile.position.is_none()),
-                                            ),
-                                    )
-                                    .child(
-                                        v_flex()
-                                            .p_2()
-                                            .child(
-                                                Button::new("Set")
-                                                    .disabled(true)
-                                                    .tooltip("Currently disabled due to issues with wayland.")
-                                                    .label("Set to current Position")
-                                                    .on_click(cx.listener(
-                                                        |this, _, window, cx| {
-                                                            let pos = wayclick_click::get_pos();
-                                                            this.x_pos.update(cx, |is, cx| {
-                                                                is.set_value(
-                                                                    pos.0.to_string(),
-                                                                    window,
-                                                                    cx,
-                                                                )
-                                                            });
-                                                            this.y_pos.update(cx, |is, cx| {
-                                                                is.set_value(
-                                                                    pos.1.to_string(),
-                                                                    window,
-                                                                    cx,
-                                                                )
-                                                            });
-                                                            this.update_settings(
-                                                                |profile| {
-                                                                    profile.position = Some((
-                                                                        pos.0 as u16,
-                                                                        pos.1 as u16,
-                                                                    ));
-                                                                },
-                                                                cx,
-                                                            )
-                                                        },
-                                                    )),
-                                            )
-                                            .child(
-                                                Button::new("test")
-                                                    .disabled(profile.position.is_none())
-                                                    .label("Test (Move mouse to pos)")
-                                                    .on_click(move |_, _, _| {
-                                                        wayclick_click::move_mouse(
-                                                            profile.position.unwrap(),
-                                                        );
-                                                    }),
-                                            ),
-                                    ),
-                            ),
-                        )
-                        .selected_index(Some(match profile.position.is_some() {
-                            false => 0,
-                            true => 1,
-                        }))
-                        .on_click(cx.listener(|view, selected_index: &usize, _, cx| {
-                            let pos = match selected_index {
-                                0 => None,
-                                _ => Some((
-                                    view.x_pos
-                                        .read_with(cx, |v, _| v.value().parse::<u64>())
-                                        .unwrap() as u16,
-                                    view.y_pos
-                                        .read_with(cx, |v, _| v.value().parse::<u64>())
-                                        .unwrap() as u16,
-                                )),
-                            };
-                            view.update_settings(|profile| profile.position = pos, cx);
-                            cx.notify();
-                        })),
-                ),
-            )
-            .child(
-                section("Controls", cx).h_10().child(
-                    h_flex()
-                        .h_full()
-                        .p_2()
-                        .child(
-                            Button::new("start")
-                                .p_5()
-                                .label("Start")
-                                .size_20()
-                                .disabled(wayclick_click::is_clicking())
-                                .on_click(|_, _, _| {
-                                    wayclick_click::start_subprocess();
-                                }),
-                        )
-                        .child(
-                            Button::new("stop")
-                                .p_5()
-                                .label("stop")
-                                .size_20()
-                                .disabled(!wayclick_click::is_clicking())
-                                .on_click(|_, _, _| {
-                                    wayclick_click::daemon_stop();
-                                }),
-                        ),
-                ),
-            )
+            .child(self.position.clone())
+            .child(self.controls.clone())
             .children(notification_layer)
             .children(dialog_layer)
     }
