@@ -1791,6 +1791,7 @@ dependencies = [
  "wayland-protocols-misc",
  "wayland-protocols-wlr",
  "windows 0.61.3",
+ "x11rb",
  "xkbcommon 0.9.0",
  "xkeysym",
 ]

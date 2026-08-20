@@ -97,19 +97,19 @@ impl Delay {
         let h = self
             .hour
             .read_with(cx, |v, _| v.value().parse::<u64>())
-            .unwrap();
+            .unwrap_or_default();
         let m = self
             .mins
             .read_with(cx, |v, _| v.value().parse::<u64>())
-            .unwrap();
+            .unwrap_or_default();
         let s = self
             .secs
             .read_with(cx, |v, _| v.value().parse::<u64>())
-            .unwrap();
+            .unwrap_or_default();
         let ms = self
             .mili
             .read_with(cx, |v, _| v.value().parse::<u64>())
-            .unwrap();
+            .unwrap_or_default();
         let time = (h * 3_600_000) + (m * 60_000) + (s * 1000) + ms;
         self.update_settings(|profile| profile.delay = time, cx);
     }
