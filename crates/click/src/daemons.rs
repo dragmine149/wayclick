@@ -42,6 +42,12 @@ pub fn daemon_start(profile: Option<String>) {
 
     let delay = Duration::from_millis(data.delay);
     let mut next = Instant::now() + delay;
+    let mut clicks = if data.repeat == 0 {
+        None
+    } else {
+        Some(data.repeat)
+    };
+
     while running.load(Ordering::SeqCst) {
         thread::sleep(next.saturating_duration_since(Instant::now()));
         if let Some(pos) = data.position {
@@ -50,11 +56,14 @@ pub fn daemon_start(profile: Option<String>) {
         enigo
             .button(enigo::Button::Left, enigo::Direction::Click)
             .expect("Failed to click, stopping immediately");
+        if let Some(click) = clicks.as_mut() {
+            *click -= 1;
+            if *click == 0 {
+                running.store(false, Ordering::SeqCst);
+            }
+        }
+
         next += delay;
-        // enigo.button(enigo::Button::Left, enigo::Direction::)
-        // enigo
-        //     .key(enigo::Key::Shift, enigo::Direction::Press)
-        //     .unwrap();
     }
     notification_handler.stop(data.notification.stopped);
 
