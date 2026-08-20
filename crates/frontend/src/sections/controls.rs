@@ -1,6 +1,6 @@
 use crate::sections::UpdateSettings;
 use gpui::{Context, IntoElement, ParentElement, Render, Styled, Window};
-use gpui_component::{Disableable, button::Button, h_flex};
+use gpui_component::{Disableable, WindowExt, button::Button, h_flex, text::markdown};
 use gpui_ext::{GPUIStructHelper, section};
 
 pub struct Controls {}
@@ -16,7 +16,28 @@ impl Render for Controls {
         section("Controls", cx).h_10().child(
             h_flex()
                 .h_full()
-                .p_2()
+                .p_2().gap_4()
+                .child(
+                    Button::new("keybinds")
+                        .label("Keybinds")
+                        .on_click(|_, win, cx| {
+                            win.open_dialog(cx, |dialog, win, cx| {
+                                dialog.child(markdown(
+                                    "# Keybinds
+If you wish to set a global keybind, please bind the following commands.
+```sh
+wayclick start
+wayclick stop
+```
+or
+```sh
+wayclick toggle
+```
+In-app binding will come in a later *undefined* update due to the amount of research needed to be done.",
+                                ))
+                            });
+                        }),
+                )
                 .child(
                     Button::new("start")
                         .p_5()
