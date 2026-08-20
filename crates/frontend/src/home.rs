@@ -6,7 +6,6 @@ use gpui::{
 use gpui_component::{
     Disableable, Root, WindowExt,
     button::{Button, ButtonVariants},
-    checkbox::Checkbox,
     dialog::{DialogFooter, DialogHeader, DialogTitle},
     h_flex,
     input::{InputEvent, InputState, NumberInput},
@@ -18,7 +17,7 @@ use gpui_component::{
 };
 use gpui_ext::{Writer, notify::WeakNotify, section, thread_to_main};
 use strum::IntoEnumIterator;
-use wayclick_schema::{Profile, TransferData};
+use wayclick_schema::{NotificationOption, Profile, TransferData};
 
 pub struct Home {
     hour: Entity<InputState>,
@@ -235,6 +234,9 @@ impl Render for Home {
         let dialog_layer = Root::render_dialog_layer(window, cx);
 
         let view = cx.entity();
+        let viewa = cx.entity();
+        let viewb = cx.entity();
+        let viewc = cx.entity();
         let profile = Settings::get(cx).get_default_profile();
         div()
             .size_full()
@@ -323,46 +325,97 @@ impl Render for Home {
                     .child(
                         section("Notification", cx).child(
                             v_flex()
-                                .child("When to show notifications. Hover for more info")
+                                .child("When to show notifications.")
                                 .child(
-                                    Checkbox::new("start")
-                                        .label("Started")
-                                        .checked(profile.notification.started)
-                                        .tooltip(
-                                            "Show a notification when the autoclicker is started.",
-                                        )
-                                        .on_click(cx.listener(|view, state, _, cx| {
-                                            view.update_settings(
-                                                |profile| profile.notification.started = *state,
-                                                cx,
-                                            );
-                                        })),
-                                ).child(
-                                    Checkbox::new("active")
-                                        .label("Active")
-                                        .checked(profile.notification.active)
-                                        .tooltip(
-                                            "Show a persistent notification whilst the autoclicker is active. Will auto-remove after autoclicking finished.",
-                                        )
-                                        .on_click(cx.listener(|view, state, _, cx| {
-                                            view.update_settings(
-                                                |profile| profile.notification.active = *state,
-                                                cx,
-                                            );
-                                        })),
-                                ).child(
-                                    Checkbox::new("stop")
-                                        .label("Stopped")
-                                        .checked(profile.notification.stopped)
-                                        .tooltip(
-                                            "Show a notification when the autoclicker has stopped.",
-                                        )
-                                        .on_click(cx.listener(|view, state, _, cx| {
-                                            view.update_settings(
-                                                |profile| profile.notification.stopped = *state,
-                                                cx,
-                                            );
-                                        })),
+                                    Button::new("start")
+                                        .label(format!(
+                                            "On Start: {}",
+                                            profile.notification.started
+                                        ))
+                                        .dropdown_menu(move |mut menu, win, _| {
+                                            for option in NotificationOption::iter() {
+                                                menu = menu.item(
+                                                    PopupMenuItem::new(option.to_string())
+                                                        .on_click(win.listener_for(
+                                                            &viewa,
+                                                            move |this, _, _, cx| {
+                                                                this.update_settings(
+                                                                    |profile| {
+                                                                        profile
+                                                                            .notification
+                                                                            .started =
+                                                                            option.clone()
+                                                                    },
+                                                                    cx,
+                                                                );
+                                                            },
+                                                        )),
+                                                )
+                                            }
+                                            menu
+                                        }),
+                                )
+                                .child(
+                                    Button::new("active")
+                                        .label(format!("Active: {}", profile.notification.active))
+                                        .dropdown_menu(move |mut menu, win, _| {
+                                            for option in NotificationOption::iter() {
+                                                menu = menu.item(
+                                                    PopupMenuItem::new(option.to_string())
+                                                        .on_click(win.listener_for(
+                                                            &viewb,
+                                                            move |this, _, _, cx| {
+                                                                this.update_settings(
+                                                                    |profile| {
+                                                                        profile
+                                                                            .notification
+                                                                            .active = option.clone()
+                                                                    },
+                                                                    cx,
+                                                                );
+                                                            },
+                                                        )),
+                                                )
+                                            }
+                                            menu
+                                        }),
+                                )
+                                .child(
+                                    Button::new("stop")
+                                        .label(format!(
+                                            "On Stopped: {}",
+                                            profile.notification.stopped
+                                        ))
+                                        .dropdown_menu(move |mut menu, win, _| {
+                                            for option in NotificationOption::iter() {
+                                                menu = menu.item(
+                                                    PopupMenuItem::new(option.to_string())
+                                                        .on_click(win.listener_for(
+                                                            &viewc,
+                                                            move |this, _, _, cx| {
+                                                                this.update_settings(
+                                                                    |profile| {
+                                                                        profile
+                                                                            .notification
+                                                                            .stopped =
+                                                                            option.clone()
+                                                                    },
+                                                                    cx,
+                                                                );
+                                                            },
+                                                        )),
+                                                )
+                                            }
+                                            menu
+                                        }),
+                                )
+                                .child(
+                                    markdown(
+                                        "- None: Don't show the notification at all
+- HistoryTimeout: Send the notification to history after 1 second
+- CloseTimeout: Close the notification after 1 second",
+                                    )
+                                    .pt_2(),
                                 ),
                         ),
                     ),

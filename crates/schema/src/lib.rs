@@ -16,22 +16,34 @@ pub enum MouseButton {
     Forward,
 }
 
+#[derive(
+    Debug, Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, EnumIter, Display,
+)]
+pub enum NotificationOption {
+    /// No notification should be shown.
+    None,
+    /// Notification goes to history after the timeout has expired.
+    HistoryTimeout,
+    /// Notification closes after the timeout has expired.
+    CloseTimeout,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NotificationSetting {
     /// Send a notification upon starting the autoclicker
-    pub started: bool,
+    pub started: NotificationOption,
     /// The notification that stays active whilst the autoclicker is running
-    pub active: bool,
+    pub active: NotificationOption,
     /// Send a notification when stopping the autoclicker.
-    pub stopped: bool,
+    pub stopped: NotificationOption,
 }
 
 impl Default for NotificationSetting {
     fn default() -> Self {
         Self {
-            started: false,
-            active: true,
-            stopped: false,
+            started: NotificationOption::None,
+            active: NotificationOption::HistoryTimeout,
+            stopped: NotificationOption::None,
         }
     }
 }
