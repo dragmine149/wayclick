@@ -450,7 +450,8 @@ impl Render for Home {
                                             .p_2()
                                             .child(
                                                 Button::new("Set")
-                                                    .disabled(profile.position.is_none())
+                                                    .disabled(true)
+                                                    .tooltip("Currently disabled due to issues with wayland. Requires a bit more research before reimplementation.")
                                                     .label("Set to current Position")
                                                     .on_click(cx.listener(
                                                         |this, _, window, cx| {
